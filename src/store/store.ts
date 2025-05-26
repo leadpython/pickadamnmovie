@@ -1,10 +1,28 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+interface Movie {
+  id: string;
+  title: string;
+  nominatedBy: string;
+}
+
+interface MovieNight {
+  id: string;
+  date: string;
+  status: 'upcoming' | 'completed';
+  movie?: string;
+  description?: string;
+  nominatedMovies?: Movie[];
+}
+
 interface MovieNightGroup {
   id: string;
+  handle: string;
   name: string;
   description: string;
+  betakey: string;
+  upcomingMovieNights: MovieNight[];
 }
 
 interface AppState {
