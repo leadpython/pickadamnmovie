@@ -2,7 +2,14 @@
 
 import { useState } from 'react';
 import PlanMovieNightModal from './PlanMovieNightModal';
+import MovieNightDetailsModal from './MovieNightDetailsModal';
 import Logo from './Logo';
+
+interface Movie {
+  id: string;
+  title: string;
+  nominatedBy: string;
+}
 
 interface MovieNight {
   id: string;
@@ -10,6 +17,7 @@ interface MovieNight {
   status: 'upcoming' | 'completed';
   movie?: string;
   description?: string;
+  nominatedMovies?: Movie[];
 }
 
 interface MovieNightGroup {
@@ -24,11 +32,28 @@ interface MovieNightGroupDashboardProps {
 }
 
 export default function MovieNightGroupDashboard({ group }: MovieNightGroupDashboardProps) {
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [selectedMovieNight, setSelectedMovieNight] = useState<MovieNight | null>(null);
 
   const handlePlanMovieNight = (data: { date: string; description: string }) => {
     console.log('Planned movie night:', data);
     // Here you would typically make an API call to save the movie night
+  };
+
+  const handleMovieNightClick = (movieNight: MovieNight) => {
+    setSelectedMovieNight(movieNight);
+    setIsDetailsModalOpen(true);
+  };
+
+  const handleSelectMovie = (movieId: string) => {
+    console.log('Selected movie:', movieId);
+    // Here you would typically make an API call to update the movie night
+  };
+
+  const handleRandomSelect = () => {
+    console.log('Random movie selection requested');
+    // Here you would typically make an API call to randomly select a movie
   };
 
   return (
@@ -44,7 +69,7 @@ export default function MovieNightGroupDashboard({ group }: MovieNightGroupDashb
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-semibold text-gray-900">Upcoming Movie Nights</h2>
             <button 
-              onClick={() => setIsModalOpen(true)}
+              onClick={() => setIsPlanModalOpen(true)}
               className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
             >
               Plan New Movie Night
@@ -56,7 +81,8 @@ export default function MovieNightGroupDashboard({ group }: MovieNightGroupDashb
               {group.upcomingMovieNights.map((movieNight) => (
                 <div
                   key={movieNight.id}
-                  className="border border-gray-200 rounded-lg p-4 hover:border-blue-500 transition-colors"
+                  onClick={() => handleMovieNightClick(movieNight)}
+                  className="border border-gray-200 rounded-lg p-4 hover:border-blue-500 transition-colors cursor-pointer"
                 >
                   <div className="flex justify-between items-center">
                     <div>
@@ -86,7 +112,7 @@ export default function MovieNightGroupDashboard({ group }: MovieNightGroupDashb
             <div className="text-center py-8 bg-gray-50 rounded-lg">
               <p className="text-gray-600">No upcoming movie nights planned yet.</p>
               <button 
-                onClick={() => setIsModalOpen(true)}
+                onClick={() => setIsPlanModalOpen(true)}
                 className="mt-4 text-blue-600 hover:text-blue-700 font-medium"
               >
                 Plan your first movie night →
@@ -97,10 +123,23 @@ export default function MovieNightGroupDashboard({ group }: MovieNightGroupDashb
       </div>
 
       <PlanMovieNightModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        isOpen={isPlanModalOpen}
+        onClose={() => setIsPlanModalOpen(false)}
         onSubmit={handlePlanMovieNight}
       />
+
+      {selectedMovieNight && (
+        <MovieNightDetailsModal
+          isOpen={isDetailsModalOpen}
+          onClose={() => {
+            setIsDetailsModalOpen(false);
+            setSelectedMovieNight(null);
+          }}
+          movieNight={selectedMovieNight}
+          onSelectMovie={handleSelectMovie}
+          onRandomSelect={handleRandomSelect}
+        />
+      )}
     </div>
   );
 } 
