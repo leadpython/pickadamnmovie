@@ -17,6 +17,7 @@ export default function Logo({ className = '' }: LogoProps) {
         className="w-auto h-auto"
         priority
       />
+      <label className="text-xs text-gray-600">Finally, somebody picks a damn movie.</label>
     </div>
   );
 } 

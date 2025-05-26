@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Logo from "@/components/Logo";
+import IntroAnimation from "@/components/IntroAnimation";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -28,6 +29,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        <IntroAnimation />
         <Logo className="p-2 absolute top-0 left-0" />
         {children}
       </body>
