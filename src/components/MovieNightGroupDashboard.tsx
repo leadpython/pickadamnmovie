@@ -3,28 +3,9 @@
 import { useState } from 'react';
 import PlanMovieNightModal from './PlanMovieNightModal';
 import MovieNightDetailsModal from './MovieNightDetailsModal';
-
-interface Movie {
-  id: string;
-  title: string;
-  nominatedBy: string;
-}
-
-interface MovieNight {
-  id: string;
-  date: string;
-  status: 'upcoming' | 'completed';
-  movie?: string;
-  description?: string;
-  nominatedMovies?: Movie[];
-}
-
-interface MovieNightGroup {
-  id: string;
-  name: string;
-  description: string;
-  upcomingMovieNights: MovieNight[];
-}
+import { createMovieNight } from '@/services';
+import { useStore } from '@/store/store';
+import { Movie, MovieNight, MovieNightGroup } from '@/types';
 
 interface MovieNightGroupDashboardProps {
   group: MovieNightGroup;
@@ -34,10 +15,26 @@ export default function MovieNightGroupDashboard({ group }: MovieNightGroupDashb
   const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [selectedMovieNight, setSelectedMovieNight] = useState<MovieNight | null>(null);
+  const { setMovieNightGroup } = useStore();
 
-  const handlePlanMovieNight = (data: { date: string; description: string }) => {
-    console.log('Planned movie night:', data);
-    // Here you would typically make an API call to save the movie night
+  const handlePlanMovieNight = async (data: { date: string; description: string }) => {
+    try {
+      const newMovieNight = await createMovieNight({
+        ...data,
+        movieNightGroupId: group.id
+      });
+
+      // Update the group in the store with the new movie night
+      setMovieNightGroup({
+        ...group,
+        handle: group.handle,
+        betakey: group.betakey,
+        upcomingMovieNights: [...group.upcomingMovieNights, newMovieNight]
+      });
+    } catch (error) {
+      console.error('Error creating movie night:', error);
+      // You might want to show an error message to the user here
+    }
   };
 
   const handleMovieNightClick = (movieNight: MovieNight) => {
@@ -124,6 +121,7 @@ export default function MovieNightGroupDashboard({ group }: MovieNightGroupDashb
         isOpen={isPlanModalOpen}
         onClose={() => setIsPlanModalOpen(false)}
         onSubmit={handlePlanMovieNight}
+        movieNightGroupId={group.id}
       />
 
       {selectedMovieNight && (

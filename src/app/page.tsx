@@ -6,6 +6,7 @@ import MovieNightGroupForm from '@/components/MovieNightGroupForm';
 import MovieNightGroupDashboard from '@/components/MovieNightGroupDashboard';
 import { validateBetaKey, createMovieNightGroup } from '@/services/';
 import { useStore } from '@/store/store';
+import { MovieNightGroup } from '@/types';
 
 export default function Home() {
   const [isKeyValidated, setIsKeyValidated] = useState(false);
@@ -13,34 +14,27 @@ export default function Home() {
   const { movieNightGroup, betaKey, setBetaKey, clearStore } = useStore();
 
   useEffect(() => {
-    const checkBetaKeyAndGroup = async () => {
-      if (!betaKey) {
-        clearStore();
-        setIsKeyValidated(false);
-        return;
-      }
-
-      try {
-        const validationResult = await validateBetaKey(betaKey);
-        if (validationResult.isValid) {
-          setIsKeyValidated(true);
-          if (!validationResult.inUse) {
-            setKeyError('This beta key is not associated with any movie night group.');
+    const validateStoredKey = async () => {
+      if (betaKey) {
+        try {
+          const validationResult = await validateBetaKey(betaKey);
+          if (validationResult.isValid) {
+            setIsKeyValidated(true);
+            if (!validationResult.inUse) {
+              setKeyError('This beta key is not associated with any movie night group.');
+            }
+          } else {
+            clearStore();
+            setKeyError('Stored beta key is no longer valid.');
           }
-        } else {
+        } catch (error) {
+          console.error('Error validating stored beta key:', error);
           clearStore();
-          setIsKeyValidated(false);
-          setKeyError('This beta key is not valid. Please try again.');
         }
-      } catch (error) {
-        console.error('Error validating beta key:', error);
-        clearStore();
-        setIsKeyValidated(false);
-        setKeyError('An error occurred while validating your key. Please try again.');
       }
     };
 
-    checkBetaKeyAndGroup();
+    validateStoredKey();
   }, [betaKey, clearStore]);
 
   const handleKeySubmit = async (key: string) => {
@@ -60,7 +54,6 @@ export default function Home() {
     } catch (error) {
       console.error('Error validating beta key:', error);
       setKeyError('An error occurred while validating your key. Please try again.');
-      clearStore();
     }
   };
 
@@ -88,7 +81,7 @@ export default function Home() {
       {!isKeyValidated ? (
         <KeyValidationForm onSubmit={handleKeySubmit} error={keyError} />
       ) : movieNightGroup ? (
-        <MovieNightGroupDashboard group={movieNightGroup} />
+        <MovieNightGroupDashboard group={movieNightGroup as MovieNightGroup} />
       ) : (
         <MovieNightGroupForm onSubmit={handleGroupSubmit} />
       )}

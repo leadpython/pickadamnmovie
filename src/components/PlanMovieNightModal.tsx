@@ -6,15 +6,40 @@ import Logo from './Logo';
 interface PlanMovieNightModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: { date: string; description: string }) => void;
+  onSubmit: (data: { 
+    date: string;
+    description: string;
+  }) => void;
+  movieNightGroupId: string;
 }
 
-export default function PlanMovieNightModal({ isOpen, onClose, onSubmit }: PlanMovieNightModalProps) {
+export default function PlanMovieNightModal({ isOpen, onClose, onSubmit, movieNightGroupId }: PlanMovieNightModalProps) {
   const [date, setDate] = useState('');
   const [description, setDescription] = useState('');
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+    
+    if (!date) {
+      newErrors.date = 'Date is required';
+    }
+    
+    if (!description) {
+      newErrors.description = 'Description is required';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateForm()) {
+      return;
+    }
+
     onSubmit({ date, description });
     onClose();
   };
@@ -50,8 +75,11 @@ export default function PlanMovieNightModal({ isOpen, onClose, onSubmit }: PlanM
               required
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className={`appearance-none rounded-md relative block w-full px-3 py-2 border ${
+                errors.date ? 'border-red-500' : 'border-gray-300'
+              } placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
             />
+            {errors.date && <p className="mt-1 text-sm text-red-600">{errors.date}</p>}
           </div>
           
           <div>
@@ -63,10 +91,13 @@ export default function PlanMovieNightModal({ isOpen, onClose, onSubmit }: PlanM
               required
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className={`appearance-none rounded-md relative block w-full px-3 py-2 border ${
+                errors.description ? 'border-red-500' : 'border-gray-300'
+              } placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
               placeholder="Add details about the movie night..."
               rows={3}
             />
+            {errors.description && <p className="mt-1 text-sm text-red-600">{errors.description}</p>}
           </div>
 
           <div className="flex justify-end space-x-4">

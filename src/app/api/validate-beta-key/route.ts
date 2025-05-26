@@ -33,7 +33,7 @@ export async function POST(request: Request) {
 
     // Then check if the key is in use in movienightgroup table
     const { data: groupData, error: groupError } = await supabaseAdmin
-      .from('movienightgroup')
+      .from('movie_night_group')
       .select('id, handle, name, description, betakey')
       .eq('betakey', key)
       .single();

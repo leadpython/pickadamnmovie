@@ -1,28 +1,5 @@
+import { Movie, MovieNight, MovieNightGroup } from '@/types';
 import { useStore } from '@/store/store';
-
-interface Movie {
-  id: string;
-  title: string;
-  nominatedBy: string;
-}
-
-interface MovieNight {
-  id: string;
-  date: string;
-  status: 'upcoming' | 'completed';
-  movie?: string;
-  description?: string;
-  nominatedMovies?: Movie[];
-}
-
-interface MovieNightGroup {
-  id: string;
-  handle: string;
-  name: string;
-  description: string;
-  betakey: string;
-  upcomingMovieNights: MovieNight[];
-}
 
 interface BetaKeyValidationResponse {
   isValid: boolean;
@@ -80,4 +57,26 @@ export const createMovieNightGroup = async (groupData: {
 
   const result = await response.json();
   return result.group;
+};
+
+export const createMovieNight = async (movieNightData: {
+  date: string;
+  description: string;
+  movieNightGroupId: string;
+}): Promise<MovieNight> => {
+  const response = await fetch('/api/create-movie-night', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(movieNightData),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to create movie night');
+  }
+
+  const result = await response.json();
+  return result.movieNight;
 };
