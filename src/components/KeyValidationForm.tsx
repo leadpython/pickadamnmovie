@@ -3,16 +3,23 @@
 import { useState } from 'react';
 
 interface KeyValidationFormProps {
-  onSubmit?: (key: string) => void;
+  onSubmit?: (key: string) => Promise<void>;
+  error?: string;
 }
 
-export default function KeyValidationForm({ onSubmit }: KeyValidationFormProps) {
+export default function KeyValidationForm({ onSubmit, error }: KeyValidationFormProps) {
   const [key, setKey] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (onSubmit) {
-      onSubmit(key);
+      setIsSubmitting(true);
+      try {
+        await onSubmit(key);
+      } finally {
+        setIsSubmitting(false);
+      }
     }
     // Clear the key field after submission
     setKey('');
@@ -43,14 +50,21 @@ export default function KeyValidationForm({ onSubmit }: KeyValidationFormProps) 
               onChange={(e) => setKey(e.target.value)}
               className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder="Enter your beta key"
+              disabled={isSubmitting}
             />
           </div>
+          {error && (
+            <div className="text-red-600 text-sm text-center">
+              {error}
+            </div>
+          )}
           <div>
             <button
               type="submit"
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              disabled={isSubmitting}
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-blue-400 disabled:cursor-not-allowed"
             >
-              Validate Key
+              {isSubmitting ? 'Validating...' : 'Validate Key'}
             </button>
           </div>
         </form>
