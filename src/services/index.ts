@@ -57,3 +57,27 @@ export const validateBetaKey = async (key: string): Promise<BetaKeyValidationRes
 
   return result;
 };
+
+export const createMovieNightGroup = async (groupData: {
+  handle: string;
+  name: string;
+  description: string;
+  password: string;
+  betakey: string;
+}): Promise<MovieNightGroup> => {
+  const response = await fetch('/api/create-movie-night-group', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(groupData),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to create movie night group');
+  }
+
+  const result = await response.json();
+  return result.group;
+};

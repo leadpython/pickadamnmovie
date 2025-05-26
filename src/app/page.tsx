@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import KeyValidationForm from '@/components/KeyValidationForm';
 import MovieNightGroupForm from '@/components/MovieNightGroupForm';
 import MovieNightGroupDashboard from '@/components/MovieNightGroupDashboard';
-import { validateBetaKey } from '@/services/';
+import { validateBetaKey, createMovieNightGroup } from '@/services/';
 import { useStore } from '@/store/store';
 
 // Mock data for demonstration
@@ -84,9 +84,23 @@ export default function Home() {
     }
   };
 
-  const handleGroupSubmit = (groupData: { name: string; description: string }) => {
-    // Handle group creation
-    console.log('Group created:', groupData);
+  const handleGroupSubmit = async (groupData: { name: string; description: string; password: string; handle: string }) => {
+    try {
+      if (!betaKey) {
+        setKeyError('Beta key is required');
+        return;
+      }
+
+      const newGroup = await createMovieNightGroup({
+        ...groupData,
+        betakey: betaKey
+      });
+
+      useStore.getState().setMovieNightGroup(newGroup);
+    } catch (error) {
+      console.error('Error creating group:', error);
+      setKeyError(error instanceof Error ? error.message : 'Failed to create group');
+    }
   };
 
   return (
