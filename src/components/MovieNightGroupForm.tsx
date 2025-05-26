@@ -20,6 +20,11 @@ export default function MovieNightGroupForm({ onSubmit }: MovieNightGroupFormPro
   return (
     <div className="w-full max-w-md space-y-8 bg-white p-8 rounded-lg shadow-lg">
       <div className="flex flex-col items-center">
+        <div className="text-center mb-4">
+          <p className="text-sm text-gray-600 italic">
+            This beta key is not associated with a movie night group. Create one now to get started.
+          </p>
+        </div>
         <h2 className="text-2xl font-bold text-gray-900 mb-6">Create Movie Night Group</h2>
         <form onSubmit={handleSubmit} className="w-full space-y-6">
           <div>

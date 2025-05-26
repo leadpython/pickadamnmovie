@@ -1,10 +1,14 @@
 'use client';
 
+import { useState } from 'react';
+import PlanMovieNightModal from './PlanMovieNightModal';
+
 interface MovieNight {
   id: string;
   date: string;
   status: 'upcoming' | 'completed';
   movie?: string;
+  description?: string;
 }
 
 interface MovieNightGroup {
@@ -19,6 +23,13 @@ interface MovieNightGroupDashboardProps {
 }
 
 export default function MovieNightGroupDashboard({ group }: MovieNightGroupDashboardProps) {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const handlePlanMovieNight = (data: { date: string; description: string }) => {
+    console.log('Planned movie night:', data);
+    // Here you would typically make an API call to save the movie night
+  };
+
   return (
     <div className="w-full max-w-4xl space-y-8 bg-white p-8 rounded-lg shadow-lg">
       <div className="flex flex-col">
@@ -30,7 +41,10 @@ export default function MovieNightGroupDashboard({ group }: MovieNightGroupDashb
         <div className="space-y-6">
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-semibold text-gray-900">Upcoming Movie Nights</h2>
-            <button className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+            <button 
+              onClick={() => setIsModalOpen(true)}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            >
               Plan New Movie Night
             </button>
           </div>
@@ -52,6 +66,9 @@ export default function MovieNightGroupDashboard({ group }: MovieNightGroupDashb
                           day: 'numeric',
                         })}
                       </h3>
+                      {movieNight.description && (
+                        <p className="text-gray-600 mt-1">{movieNight.description}</p>
+                      )}
                       {movieNight.movie && (
                         <p className="text-gray-600 mt-1">Movie: {movieNight.movie}</p>
                       )}
@@ -66,13 +83,22 @@ export default function MovieNightGroupDashboard({ group }: MovieNightGroupDashb
           ) : (
             <div className="text-center py-8 bg-gray-50 rounded-lg">
               <p className="text-gray-600">No upcoming movie nights planned yet.</p>
-              <button className="mt-4 text-blue-600 hover:text-blue-700 font-medium">
+              <button 
+                onClick={() => setIsModalOpen(true)}
+                className="mt-4 text-blue-600 hover:text-blue-700 font-medium"
+              >
                 Plan your first movie night →
               </button>
             </div>
           )}
         </div>
       </div>
+
+      <PlanMovieNightModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSubmit={handlePlanMovieNight}
+      />
     </div>
   );
 } 
