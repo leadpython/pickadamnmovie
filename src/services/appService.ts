@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { useStore } from '@/store/store';
 
 // Create axios instance with default config
 const api = axios.create({
@@ -43,11 +44,19 @@ api.interceptors.response.use(
   }
 );
 
+interface BetaKeyValidationResponse {
+  valid: boolean;
+  message?: string;
+}
+
 // API methods
 export const appService = {
   // Beta key validation
   validateBetaKey: async (key: string) => {
-    const response = await api.post('/beta/validate', { key });
+    const response = await api.post<BetaKeyValidationResponse>('/beta/validate', { key });
+    if (response.data.valid) {
+      useStore.getState().setBetaKey(key);
+    }
     return response.data;
   },
 
