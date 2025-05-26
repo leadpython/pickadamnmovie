@@ -3,17 +3,18 @@
 import { useState } from 'react';
 
 interface MovieNightGroupFormProps {
-  onSubmit?: (groupData: { name: string; description: string }) => void;
+  onSubmit?: (groupData: { name: string; description: string; password: string }) => void;
 }
 
 export default function MovieNightGroupForm({ onSubmit }: MovieNightGroupFormProps) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [password, setPassword] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (onSubmit) {
-      onSubmit({ name, description });
+      onSubmit({ name, description, password });
     }
   };
 
@@ -56,6 +57,22 @@ export default function MovieNightGroupForm({ onSubmit }: MovieNightGroupFormPro
               placeholder="Describe your movie night group"
               rows={3}
             />
+          </div>
+          <div>
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+              Group Password
+            </label>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Create a password for group access"
+            />
+            <p className="mt-1 text-sm text-gray-500">Share this password with your movie night group members</p>
           </div>
           <div>
             <button
