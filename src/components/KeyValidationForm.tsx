@@ -22,14 +22,6 @@ export default function KeyValidationForm({ onSubmit }: KeyValidationFormProps) 
   return (
     <div className="w-full max-w-md space-y-8 bg-white p-8 rounded-lg shadow-lg">
       <div className="flex flex-col items-center">
-        <Image
-          src="/pickadamnmovie.png"
-          alt="Pick a Damn Movie Logo"
-          width={300}
-          height={100}
-          priority
-          className="mb-8"
-        />
         <div className="text-center mb-6">
           <p className="text-sm text-gray-600 mb-2">
             This app is currently in limited beta testing.

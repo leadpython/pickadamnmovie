@@ -12,8 +12,8 @@ export default function Logo({ className = '' }: LogoProps) {
       <Image
         src="/pickadamnmovie.png"
         alt="PickADamnMovie Logo"
-        width={200}
-        height={200}
+        width={100}
+        height={100}
         className="w-auto h-auto"
         priority
       />

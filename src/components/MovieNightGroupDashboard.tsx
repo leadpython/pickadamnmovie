@@ -60,7 +60,6 @@ export default function MovieNightGroupDashboard({ group }: MovieNightGroupDashb
     <div className="w-full max-w-4xl space-y-8 bg-white p-8 rounded-lg shadow-lg">
       <div className="flex flex-col">
         <div className="mb-8">
-          <Logo className="mb-4" />
           <h1 className="text-3xl font-bold text-gray-900 mb-2">{group.name}</h1>
           <p className="text-gray-600">{group.description}</p>
         </div>

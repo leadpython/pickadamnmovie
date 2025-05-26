@@ -36,7 +36,7 @@ export default function Home() {
     
     // Simulate checking if key is associated with a group
     // In a real app, this would be an API call
-    const isAssociatedWithGroup = true; // Change this to false to test the group creation form
+    const isAssociatedWithGroup = false; // Change this to false to test the group creation form
     setHasExistingGroup(isAssociatedWithGroup);
   };
 
