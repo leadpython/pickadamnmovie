@@ -23,7 +23,7 @@ export default function SuperAdminLoginForm({ onLogin }: SuperAdminLoginFormProp
       if (!success) {
         setError('Invalid username or password');
       }
-    } catch (err) {
+    } catch {
       setError('An error occurred. Please try again.');
     } finally {
       setIsLoading(false);

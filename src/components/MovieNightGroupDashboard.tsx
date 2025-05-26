@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import PlanMovieNightModal from './PlanMovieNightModal';
 import MovieNightDetailsModal from './MovieNightDetailsModal';
-import Logo from './Logo';
 
 interface Movie {
   id: string;
