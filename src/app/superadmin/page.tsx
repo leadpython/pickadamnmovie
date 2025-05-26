@@ -50,17 +50,19 @@ export default function SuperAdminPanel() {
     },
   ];
 
-  const handleLogin = (username: string, password: string) => {
+  const handleLogin = async (username: string, password: string): Promise<boolean> => {
     // In a real app, this would be an API call to validate credentials
     if (username === 'admin' && password === 'admin123') {
       setIsAuthenticated(true);
+      return true;
     } else {
       // Handle invalid credentials
       console.error('Invalid credentials');
+      return false;
     }
   };
 
-  if (isAuthenticated) {
+  if (!isAuthenticated) {
     return <SuperAdminLoginForm onLogin={handleLogin} />;
   }
 
