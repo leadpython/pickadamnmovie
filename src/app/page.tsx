@@ -7,26 +7,6 @@ import MovieNightGroupDashboard from '@/components/MovieNightGroupDashboard';
 import { validateBetaKey, createMovieNightGroup } from '@/services/';
 import { useStore } from '@/store/store';
 
-// Mock data for demonstration
-const mockGroup = {
-  id: '1',
-  name: 'Friday Night Movie Club',
-  description: 'A group of friends who meet every Friday to watch movies together.',
-  upcomingMovieNights: [
-    {
-      id: '1',
-      date: '2024-03-22',
-      status: 'upcoming' as const,
-    },
-    {
-      id: '2',
-      date: '2024-03-29',
-      status: 'upcoming' as const,
-      movie: 'The Matrix',
-    },
-  ],
-};
-
 export default function Home() {
   const [isKeyValidated, setIsKeyValidated] = useState(false);
   const [keyError, setKeyError] = useState<string | undefined>();

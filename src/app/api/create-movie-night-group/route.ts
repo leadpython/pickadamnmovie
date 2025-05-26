@@ -15,7 +15,7 @@ export async function POST(request: Request) {
 
     // Check if handle is already taken
     const { data: existingGroup, error: checkError } = await supabaseAdmin
-      .from('movienightgroup')
+      .from('movie_night_group')
       .select('id')
       .eq('handle', handle)
       .single();
@@ -51,7 +51,7 @@ export async function POST(request: Request) {
 
     // Check if beta key is already in use
     const { data: existingBetaKey, error: betaKeyCheckError } = await supabaseAdmin
-      .from('movienightgroup')
+      .from('movie_night_group')
       .select('id')
       .eq('betakey', betakey)
       .single();
@@ -77,7 +77,7 @@ export async function POST(request: Request) {
 
     // Create the movie night group
     const { data: newGroup, error: createError } = await supabaseAdmin
-      .from('movienightgroup')
+      .from('movie_night_group')
       .insert([
         {
           handle,
