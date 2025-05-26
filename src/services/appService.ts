@@ -47,6 +47,13 @@ api.interceptors.response.use(
 interface BetaKeyValidationResponse {
   valid: boolean;
   message?: string;
+  groupId?: string;
+}
+
+interface MovieNightGroup {
+  id: string;
+  name: string;
+  description: string;
 }
 
 // API methods
@@ -54,20 +61,26 @@ export const appService = {
   // Beta key validation
   validateBetaKey: async (key: string) => {
     const response = await api.post<BetaKeyValidationResponse>('/beta/validate', { key });
-    if (response.data.valid) {
+    if (response.data.valid && response.data.groupId) {
+      // Store beta key
       useStore.getState().setBetaKey(key);
+      
+      // Fetch and store group data
+      const groupResponse = await api.get<MovieNightGroup>(`/groups/${response.data.groupId}`);
+      useStore.getState().setMovieNightGroup(groupResponse.data);
     }
     return response.data;
   },
 
   // Movie night group
   createMovieNightGroup: async (data: { name: string; description: string; password: string }) => {
-    const response = await api.post('/groups', data);
+    const response = await api.post<MovieNightGroup>('/groups', data);
+    useStore.getState().setMovieNightGroup(response.data);
     return response.data;
   },
 
   getMovieNightGroup: async (groupId: string) => {
-    const response = await api.get(`/groups/${groupId}`);
+    const response = await api.get<MovieNightGroup>(`/groups/${groupId}`);
     return response.data;
   },
 
