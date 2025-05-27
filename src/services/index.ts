@@ -131,3 +131,55 @@ export const deleteMovieNight = async (movieNightId: string): Promise<void> => {
     throw new Error(error.error || 'Failed to delete movie night');
   }
 };
+
+export const searchMovies = async (query: string) => {
+  const response = await fetch(`/api/search-movies?query=${encodeURIComponent(query)}`);
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to search movies');
+  }
+  return response.json();
+};
+
+export const getMovieDetails = async (imdbId: string) => {
+  const response = await fetch(`/api/movie-details/${imdbId}`);
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to fetch movie details');
+  }
+  return response.json();
+};
+
+export const nominateMovie = async (movieNightId: string, movie: {
+  Title: string;
+  Year: string;
+  imdbID: string;
+  Type: string;
+  Poster: string;
+  Plot?: string;
+  Director?: string;
+  Actors?: string;
+  Genre?: string;
+  Runtime?: string;
+  Rated?: string;
+  imdbRating?: string;
+}) => {
+  const response = await fetch(`/api/movie-night/${movieNightId}/nominate`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ movie }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to nominate movie');
+  }
+
+  const result = await response.json();
+  return {
+    movies: result.movies,
+    message: result.message
+  };
+};

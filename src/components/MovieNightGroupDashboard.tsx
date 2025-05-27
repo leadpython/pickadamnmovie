@@ -64,6 +64,28 @@ export default function MovieNightGroupDashboard({ group }: MovieNightGroupDashb
     });
   };
 
+  const handleMovieNightUpdated = async (updatedMovieNight: MovieNight) => {
+    try {
+      // Fetch the latest movie night data
+      const upcomingMovieNights = await fetchUpcomingMovieNights(group.id);
+      
+      // Update the group in the store with the fresh data
+      setMovieNightGroup({
+        ...group,
+        upcomingMovieNights
+      });
+
+      // Update the selected movie night with the latest data
+      const updatedSelectedMovieNight = upcomingMovieNights.find(mn => mn.id === updatedMovieNight.id);
+      if (updatedSelectedMovieNight) {
+        setSelectedMovieNight(updatedSelectedMovieNight);
+      }
+    } catch (error) {
+      console.error('Error updating movie night:', error);
+      // You might want to show an error message to the user here
+    }
+  };
+
   const handleMovieNightClick = (movieNight: MovieNight) => {
     setSelectedMovieNight(movieNight);
     setIsDetailsModalOpen(true);
@@ -164,6 +186,7 @@ export default function MovieNightGroupDashboard({ group }: MovieNightGroupDashb
           onSelectMovie={handleSelectMovie}
           onRandomSelect={handleRandomSelect}
           onDelete={handleMovieNightDeleted}
+          onUpdate={handleMovieNightUpdated}
         />
       )}
     </div>

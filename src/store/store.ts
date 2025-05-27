@@ -1,10 +1,28 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+interface Movie {
+  Title: string;
+  Year: string;
+  imdbID: string;
+  Type: string;
+  Poster: string;
+  Plot?: string;
+  Director?: string;
+  Actors?: string;
+  Genre?: string;
+  Runtime?: string;
+  Rated?: string;
+  imdbRating?: string;
+}
+
 interface MovieNight {
   id: string;
   date: string;
+  status: 'upcoming' | 'completed';
   description?: string;
+  movie?: string;
+  movies?: { [key: string]: Movie };
 }
 
 interface MovieNightGroup {

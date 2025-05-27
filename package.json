@@ -11,6 +11,7 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.49.8",
     "@types/bcrypt": "^5.0.2",
+    "@vercel/postgres": "^0.10.0",
     "bcrypt": "^6.0.0",
     "next": "15.3.2",
     "react": "^19.0.0",
