@@ -7,6 +7,11 @@ interface BetaKeyValidationResponse {
   groupData: MovieNightGroup | null;
 }
 
+interface HandleValidationResponse {
+  isValid: boolean;
+  isTaken: boolean;
+}
+
 export const validateBetaKey = async (key: string): Promise<BetaKeyValidationResponse> => {
   const response = await fetch('/api/validate-beta-key', {
     method: 'POST',
@@ -35,13 +40,12 @@ export const validateBetaKey = async (key: string): Promise<BetaKeyValidationRes
   return result;
 };
 
-export const createMovieNightGroup = async (groupData: {
+export async function createMovieNightGroup(groupData: {
   handle: string;
   name: string;
-  description: string;
   password: string;
   betakey: string;
-}): Promise<MovieNightGroup> => {
+}) {
   const response = await fetch('/api/create-movie-night-group', {
     method: 'POST',
     headers: {
@@ -55,9 +59,9 @@ export const createMovieNightGroup = async (groupData: {
     throw new Error(error.error || 'Failed to create movie night group');
   }
 
-  const result = await response.json();
-  return result.group;
-};
+  const data = await response.json();
+  return data.group;
+}
 
 export const createMovieNight = async (movieNightData: {
   date: string;
@@ -96,4 +100,34 @@ export const fetchUpcomingMovieNights = async (movieNightGroupId: string): Promi
 
   const result = await response.json();
   return result.movieNights;
+};
+
+export const validateHandle = async (handle: string): Promise<HandleValidationResponse> => {
+  const response = await fetch('/api/validate-handle', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ handle }),
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to validate handle');
+  }
+
+  return response.json();
+};
+
+export const deleteMovieNight = async (movieNightId: string): Promise<void> => {
+  const response = await fetch(`/api/movie-night/${movieNightId}`, {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to delete movie night');
+  }
 };

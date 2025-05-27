@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { validateBetaKey, createMovieNightGroup } from '@/services';
+import { validateBetaKey, validateHandle, createMovieNightGroup } from '@/services';
 import { useStore } from '@/store/store';
 
 interface MovieNightGroupFormProps {
-  onSubmit?: (groupData: { name: string; description: string; password: string; handle: string; betakey: string }) => void;
+  onSubmit?: (groupData: { name: string; password: string; handle: string; betakey: string }) => void;
 }
 
 type FormMode = 'signup' | 'signin';
@@ -14,14 +14,18 @@ export default function MovieNightGroupForm({ onSubmit }: MovieNightGroupFormPro
   const setMovieNightGroup = useStore(state => state.setMovieNightGroup);
   const [mode, setMode] = useState<FormMode>('signup');
   const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
   const [password, setPassword] = useState('');
   const [handle, setHandle] = useState('');
   const [betakey, setBetakey] = useState('');
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isValidatingBetaKey, setIsValidatingBetaKey] = useState(false);
+  const [isValidatingHandle, setIsValidatingHandle] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [betaKeyStatus, setBetaKeyStatus] = useState<{
+    isValid: boolean;
+    message: string;
+  } | null>(null);
+  const [handleStatus, setHandleStatus] = useState<{
     isValid: boolean;
     message: string;
   } | null>(null);
@@ -60,16 +64,50 @@ export default function MovieNightGroupForm({ onSubmit }: MovieNightGroupFormPro
     }
   };
 
+  const validateHandleInput = async (value: string) => {
+    if (!value.trim()) {
+      setErrors(prev => ({ ...prev, handle: 'Handle is required' }));
+      setHandleStatus(null);
+      return false;
+    }
+
+    setIsValidatingHandle(true);
+    setHandleStatus(null);
+    try {
+      const result = await validateHandle(value);
+      if (!result.isValid) {
+        setErrors(prev => ({ ...prev, handle: 'Invalid handle' }));
+        setHandleStatus({ isValid: false, message: 'Invalid handle' });
+        return false;
+      }
+      if (result.isTaken) {
+        setErrors(prev => ({ ...prev, handle: 'Handle is already taken' }));
+        setHandleStatus({ isValid: false, message: 'Handle is already taken' });
+        return false;
+      }
+      setErrors(prev => ({ ...prev, handle: '' }));
+      setHandleStatus({ isValid: true, message: 'Handle is available!' });
+      return true;
+    } catch (error) {
+      setErrors(prev => ({ ...prev, handle: 'Error validating handle' }));
+      setHandleStatus({ isValid: false, message: 'Error validating handle' });
+      return false;
+    } finally {
+      setIsValidatingHandle(false);
+    }
+  };
+
   const isFormValid = () => {
     if (mode === 'signin') {
       return handle.trim() !== '' && password.trim() !== '';
     }
     return (
       name.trim() !== '' &&
-      description.trim() !== '' &&
       password.trim() !== '' &&
       betakey.trim() !== '' &&
-      !errors.betakey
+      handle.trim() !== '' &&
+      !errors.betakey &&
+      !errors.handle
     );
   };
 
@@ -78,8 +116,8 @@ export default function MovieNightGroupForm({ onSubmit }: MovieNightGroupFormPro
     
     if (mode === 'signup') {
       if (!name.trim()) newErrors.name = 'Name is required';
-      if (!description.trim()) newErrors.description = 'Description is required';
       if (!betakey.trim()) newErrors.betakey = 'Beta key is required';
+      if (!handle.trim()) newErrors.handle = 'Handle is required';
     }
     
     if (!password.trim()) newErrors.password = 'Password is required';
@@ -88,9 +126,10 @@ export default function MovieNightGroupForm({ onSubmit }: MovieNightGroupFormPro
     setErrors(newErrors);
     
     if (mode === 'signup') {
-      // Validate beta key only in signup mode
+      // Validate beta key and handle only in signup mode
       const isBetaKeyValid = await validateBetaKeyInput(betakey);
-      return Object.keys(newErrors).length === 0 && isBetaKeyValid;
+      const isHandleValid = await validateHandleInput(handle);
+      return Object.keys(newErrors).length === 0 && isBetaKeyValid && isHandleValid;
     }
     
     return Object.keys(newErrors).length === 0;
@@ -110,8 +149,10 @@ export default function MovieNightGroupForm({ onSubmit }: MovieNightGroupFormPro
     try {
       if (await validateForm()) {
         if (mode === 'signup') {
-          // Validate beta key one final time before submission
+          // Validate beta key and handle one final time before submission
           const betaKeyResult = await validateBetaKey(betakey);
+          const handleResult = await validateHandle(handle);
+          
           if (!betaKeyResult.isValid || betaKeyResult.inUse) {
             setBetaKeyStatus({
               isValid: false,
@@ -120,8 +161,16 @@ export default function MovieNightGroupForm({ onSubmit }: MovieNightGroupFormPro
             return;
           }
 
+          if (!handleResult.isValid || handleResult.isTaken) {
+            setHandleStatus({
+              isValid: false,
+              message: handleResult.isTaken ? 'Handle is already taken' : 'Invalid handle'
+            });
+            return;
+          }
+
           // Create the movie night group
-          const groupData = { name, description, password, handle, betakey };
+          const groupData = { name, password, handle, betakey };
           const newGroup = await createMovieNightGroup(groupData);
           
           // Update the store with the new group data
@@ -174,10 +223,26 @@ export default function MovieNightGroupForm({ onSubmit }: MovieNightGroupFormPro
     }
   };
 
+  const handleHandleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.toLowerCase();
+    setHandle(value);
+    setHandleStatus(null);
+    if (!value.trim()) {
+      setErrors(prev => ({ ...prev, handle: 'Handle is required' }));
+    }
+  };
+
+  const handleHandleBlur = async () => {
+    if (handle.trim()) {
+      await validateHandleInput(handle);
+    }
+  };
+
   const toggleMode = () => {
     setMode(prev => prev === 'signup' ? 'signin' : 'signup');
     setErrors({});
     setBetaKeyStatus(null);
+    setHandleStatus(null);
   };
 
   return (
@@ -249,25 +314,6 @@ export default function MovieNightGroupForm({ onSubmit }: MovieNightGroupFormPro
                 />
                 {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
               </div>
-              <div>
-                <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
-                  Description
-                </label>
-                <textarea
-                  id="description"
-                  name="description"
-                  required
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  className={`appearance-none rounded-md relative block w-full px-3 py-2 border ${
-                    errors.description ? 'border-red-500' : 'border-gray-300'
-                  } placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
-                  placeholder="Describe your movie night group"
-                  rows={3}
-                  disabled={isSubmitting}
-                />
-                {errors.description && <p className="mt-1 text-sm text-red-600">{errors.description}</p>}
-              </div>
             </>
           )}
           <div>
@@ -280,14 +326,23 @@ export default function MovieNightGroupForm({ onSubmit }: MovieNightGroupFormPro
               type="text"
               required
               value={handle}
-              onChange={(e) => setHandle(e.target.value)}
+              onChange={handleHandleChange}
+              onBlur={handleHandleBlur}
               className={`appearance-none rounded-md relative block w-full px-3 py-2 border ${
-                errors.handle ? 'border-red-500' : 'border-gray-300'
+                errors.handle ? 'border-red-500' : handleStatus?.isValid ? 'border-green-500' : 'border-gray-300'
               } placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
               placeholder="Enter group handle"
               disabled={isSubmitting}
             />
-            {errors.handle && <p className="mt-1 text-sm text-red-600">{errors.handle}</p>}
+            {isValidatingHandle && (
+              <p className="mt-1 text-sm text-gray-500">Validating handle...</p>
+            )}
+            {handleStatus && (
+              <p className={`mt-1 text-sm ${handleStatus.isValid ? 'text-green-600' : 'text-red-600'}`}>
+                {handleStatus.message}
+              </p>
+            )}
+            {errors.handle && !handleStatus && <p className="mt-1 text-sm text-red-600">{errors.handle}</p>}
           </div>
           <div>
             <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">

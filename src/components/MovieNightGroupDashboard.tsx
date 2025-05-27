@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import PlanMovieNightModal from './PlanMovieNightModal';
 import MovieNightDetailsModal from './MovieNightDetailsModal';
-import { createMovieNight, fetchUpcomingMovieNights } from '@/services';
+import { createMovieNight, fetchUpcomingMovieNights, deleteMovieNight } from '@/services';
 import { useStore } from '@/store/store';
 import { Movie, MovieNight, MovieNightGroup } from '@/types';
 
@@ -54,6 +54,16 @@ export default function MovieNightGroupDashboard({ group }: MovieNightGroupDashb
     }
   };
 
+  const handleMovieNightDeleted = async () => {
+    // Fetch updated upcoming movie nights
+    const upcomingMovieNights = await fetchUpcomingMovieNights(group.id);
+    // Update the group in the store with the new movie nights
+    setMovieNightGroup({
+      ...group,
+      upcomingMovieNights
+    });
+  };
+
   const handleMovieNightClick = (movieNight: MovieNight) => {
     setSelectedMovieNight(movieNight);
     setIsDetailsModalOpen(true);
@@ -93,11 +103,13 @@ export default function MovieNightGroupDashboard({ group }: MovieNightGroupDashb
               {group.upcomingMovieNights.map((movieNight) => (
                 <div
                   key={movieNight.id}
-                  onClick={() => handleMovieNightClick(movieNight)}
-                  className="border border-gray-200 rounded-lg p-4 hover:border-blue-500 transition-colors cursor-pointer"
+                  className="border border-gray-200 rounded-lg p-4 hover:border-blue-500 transition-colors"
                 >
                   <div className="flex justify-between items-center">
-                    <div>
+                    <div 
+                      onClick={() => handleMovieNightClick(movieNight)}
+                      className="cursor-pointer flex-grow"
+                    >
                       <h3 className="font-medium text-gray-900">
                         {new Date(movieNight.date).toLocaleDateString('en-US', {
                           weekday: 'long',
@@ -151,6 +163,7 @@ export default function MovieNightGroupDashboard({ group }: MovieNightGroupDashb
           movieNight={selectedMovieNight}
           onSelectMovie={handleSelectMovie}
           onRandomSelect={handleRandomSelect}
+          onDelete={handleMovieNightDeleted}
         />
       )}
     </div>

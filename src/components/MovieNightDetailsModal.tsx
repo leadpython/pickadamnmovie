@@ -1,6 +1,8 @@
 'use client';
 
 import Logo from './Logo';
+import { deleteMovieNight } from '@/services';
+import { useState } from 'react';
 
 interface Movie {
   id: string;
@@ -23,6 +25,7 @@ interface MovieNightDetailsModalProps {
   movieNight: MovieNight;
   onSelectMovie: (movieId: string) => void;
   onRandomSelect: () => void;
+  onDelete: () => void;
 }
 
 export default function MovieNightDetailsModal({
@@ -31,8 +34,25 @@ export default function MovieNightDetailsModal({
   movieNight,
   onSelectMovie,
   onRandomSelect,
+  onDelete,
 }: MovieNightDetailsModalProps) {
+  const [isDeleting, setIsDeleting] = useState(false);
+
   if (!isOpen) return null;
+
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    try {
+      await deleteMovieNight(movieNight.id);
+      onDelete();
+      onClose();
+    } catch (error) {
+      console.error('Error deleting movie night:', error);
+      // You might want to show an error message to the user here
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   const formattedDate = new Date(movieNight.date).toLocaleDateString('en-US', {
     weekday: 'long',
@@ -70,12 +90,25 @@ export default function MovieNightDetailsModal({
           <div className="border-t border-gray-200 pt-6">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-gray-900">Selected Movie</h3>
-              <button
-                onClick={onRandomSelect}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-              >
-                Pick Random Movie
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={onRandomSelect}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                >
+                  Pick Random Movie
+                </button>
+                <button
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                  className={`px-4 py-2 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                    isDeleting
+                      ? 'bg-gray-400 cursor-not-allowed'
+                      : 'bg-red-600 hover:bg-red-700 focus:ring-red-500'
+                  }`}
+                >
+                  {isDeleting ? 'Deleting...' : 'Delete Movie Night'}
+                </button>
+              </div>
             </div>
 
             {movieNight.movie ? (
