@@ -13,14 +13,18 @@ export async function POST(request: Request) {
       );
     }
 
+    console.log('Checking handle:', handle);
+
     // Check if handle is already taken
     const { data: existingGroup, error: checkError } = await supabaseAdmin
       .from('movie_night_group')
       .select('id')
-      .eq('handle', handle)
-      .single();
+      .ilike('handle', handle)
+      .maybeSingle();
 
-    if (checkError && checkError.code !== 'PGRST116') {
+    console.log('Handle check result:', { existingGroup, checkError });
+
+    if (checkError) {
       console.error('Error checking handle:', checkError);
       return NextResponse.json(
         { error: 'Error checking handle availability' },
@@ -29,20 +33,34 @@ export async function POST(request: Request) {
     }
 
     if (existingGroup) {
+      console.log('Handle already taken:', existingGroup);
       return NextResponse.json(
         { error: 'Handle is already taken' },
         { status: 400 }
       );
     }
 
+    console.log('Handle is available, proceeding with beta key check');
+
     // Check if beta key is valid and not in use
     const { data: betaKeyData, error: betaKeyError } = await supabaseAdmin
       .from('betakeys')
       .select('id')
       .eq('id', betakey)
-      .single();
+      .maybeSingle();
 
-    if (betaKeyError || !betaKeyData) {
+    console.log('Beta key check result:', { betaKeyData, betaKeyError });
+
+    if (betaKeyError) {
+      console.error('Error checking beta key:', betaKeyError);
+      return NextResponse.json(
+        { error: 'Error checking beta key' },
+        { status: 500 }
+      );
+    }
+
+    if (!betaKeyData) {
+      console.log('Invalid beta key');
       return NextResponse.json(
         { error: 'Invalid beta key' },
         { status: 400 }
@@ -54,9 +72,11 @@ export async function POST(request: Request) {
       .from('movie_night_group')
       .select('id')
       .eq('betakey', betakey)
-      .single();
+      .maybeSingle();
 
-    if (betaKeyCheckError && betaKeyCheckError.code !== 'PGRST116') {
+    console.log('Beta key usage check result:', { existingBetaKey, betaKeyCheckError });
+
+    if (betaKeyCheckError) {
       console.error('Error checking beta key usage:', betaKeyCheckError);
       return NextResponse.json(
         { error: 'Error checking beta key usage' },
@@ -65,6 +85,7 @@ export async function POST(request: Request) {
     }
 
     if (existingBetaKey) {
+      console.log('Beta key already in use:', existingBetaKey);
       return NextResponse.json(
         { error: 'Beta key is already in use' },
         { status: 400 }
@@ -74,6 +95,8 @@ export async function POST(request: Request) {
     // Hash the password
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+    console.log('Creating new movie night group');
 
     // Create the movie night group
     const { data: newGroup, error: createError } = await supabaseAdmin
@@ -90,6 +113,8 @@ export async function POST(request: Request) {
       .select()
       .single();
 
+    console.log('Create group result:', { newGroup, createError });
+
     if (createError) {
       console.error('Error creating movie night group:', createError);
       return NextResponse.json(
@@ -98,10 +123,13 @@ export async function POST(request: Request) {
       );
     }
 
+    // Remove sensitive data before sending response
+    const { betakey: _, secret: __, ...safeGroupData } = newGroup;
+
     return NextResponse.json({
       success: true,
       group: {
-        ...newGroup,
+        ...safeGroupData,
         upcomingMovieNights: []
       }
     });

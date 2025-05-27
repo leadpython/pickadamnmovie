@@ -80,3 +80,20 @@ export const createMovieNight = async (movieNightData: {
   const result = await response.json();
   return result.movieNight;
 };
+
+export const fetchUpcomingMovieNights = async (movieNightGroupId: string): Promise<MovieNight[]> => {
+  const response = await fetch(`/api/movie-night-group/${movieNightGroupId}/upcoming-movie-nights`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to fetch upcoming movie nights');
+  }
+
+  const result = await response.json();
+  return result.movieNights;
+};

@@ -12,14 +12,11 @@ interface MovieNightGroup {
   handle: string;
   name: string;
   description: string;
-  betakey: string;
   upcomingMovieNights: MovieNight[];
 }
 
 interface AppState {
-  betaKey: string | null;
   movieNightGroup: MovieNightGroup | null;
-  setBetaKey: (key: string | null) => void;
   setMovieNightGroup: (group: MovieNightGroup | null) => void;
   clearStore: () => void;
 }
@@ -27,11 +24,9 @@ interface AppState {
 export const useStore = create<AppState>()(
   persist(
     (set) => ({
-      betaKey: null,
       movieNightGroup: null,
-      setBetaKey: (key) => set({ betaKey: key }),
       setMovieNightGroup: (group) => set({ movieNightGroup: group }),
-      clearStore: () => set({ betaKey: null, movieNightGroup: null }),
+      clearStore: () => set({ movieNightGroup: null }),
     }),
     {
       name: 'movie-night-storage', // unique name for localStorage key

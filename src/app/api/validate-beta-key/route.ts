@@ -28,7 +28,10 @@ export async function POST(request: Request) {
     }
 
     if (!betaKeyData) {
-      return NextResponse.json({ isValid: false, inUse: false });
+      return NextResponse.json(
+        { error: 'Invalid beta key' },
+        { status: 400 }
+      );
     }
 
     // Then check if the key is in use in movienightgroup table
@@ -46,10 +49,18 @@ export async function POST(request: Request) {
       );
     }
 
+    if (groupData) {
+      return NextResponse.json(
+        { error: 'Beta key is already in use' },
+        { status: 400 }
+      );
+    }
+
+    // If we get here, the key is valid and not in use
     return NextResponse.json({
       isValid: true,
-      inUse: !!groupData,
-      groupData: groupData || null
+      inUse: false,
+      message: 'Beta key is valid and available for use'
     });
   } catch (error) {
     console.error('Error in validate-beta-key route:', error);

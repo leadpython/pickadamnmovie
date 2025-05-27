@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import PlanMovieNightModal from './PlanMovieNightModal';
 import MovieNightDetailsModal from './MovieNightDetailsModal';
-import { createMovieNight } from '@/services';
+import { createMovieNight, fetchUpcomingMovieNights } from '@/services';
 import { useStore } from '@/store/store';
 import { Movie, MovieNight, MovieNightGroup } from '@/types';
 
@@ -17,19 +17,36 @@ export default function MovieNightGroupDashboard({ group }: MovieNightGroupDashb
   const [selectedMovieNight, setSelectedMovieNight] = useState<MovieNight | null>(null);
   const { setMovieNightGroup } = useStore();
 
+  useEffect(() => {
+    const loadUpcomingMovieNights = async () => {
+      try {
+        const upcomingMovieNights = await fetchUpcomingMovieNights(group.id);
+        setMovieNightGroup({
+          ...group,
+          upcomingMovieNights
+        });
+      } catch (error) {
+        console.error('Error fetching upcoming movie nights:', error);
+      }
+    };
+
+    loadUpcomingMovieNights();
+  }, [group.id]);
+
   const handlePlanMovieNight = async (data: { date: string; description: string }) => {
     try {
-      const newMovieNight = await createMovieNight({
+      await createMovieNight({
         ...data,
         movieNightGroupId: group.id
       });
 
-      // Update the group in the store with the new movie night
+      // Fetch updated upcoming movie nights
+      const upcomingMovieNights = await fetchUpcomingMovieNights(group.id);
+      
+      // Update the group in the store with the new movie nights
       setMovieNightGroup({
         ...group,
-        handle: group.handle,
-        betakey: group.betakey,
-        upcomingMovieNights: [...group.upcomingMovieNights, newMovieNight]
+        upcomingMovieNights
       });
     } catch (error) {
       console.error('Error creating movie night:', error);
