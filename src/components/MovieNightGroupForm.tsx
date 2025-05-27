@@ -8,8 +8,11 @@ interface MovieNightGroupFormProps {
   onSubmit?: (groupData: { name: string; description: string; password: string; handle: string; betakey: string }) => void;
 }
 
+type FormMode = 'signup' | 'signin';
+
 export default function MovieNightGroupForm({ onSubmit }: MovieNightGroupFormProps) {
   const setMovieNightGroup = useStore(state => state.setMovieNightGroup);
+  const [mode, setMode] = useState<FormMode>('signup');
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [password, setPassword] = useState('');
@@ -58,6 +61,9 @@ export default function MovieNightGroupForm({ onSubmit }: MovieNightGroupFormPro
   };
 
   const isFormValid = () => {
+    if (mode === 'signin') {
+      return handle.trim() !== '' && password.trim() !== '';
+    }
     return (
       name.trim() !== '' &&
       description.trim() !== '' &&
@@ -70,17 +76,24 @@ export default function MovieNightGroupForm({ onSubmit }: MovieNightGroupFormPro
   const validateForm = async () => {
     const newErrors: { [key: string]: string } = {};
     
-    if (!name.trim()) newErrors.name = 'Name is required';
-    if (!description.trim()) newErrors.description = 'Description is required';
+    if (mode === 'signup') {
+      if (!name.trim()) newErrors.name = 'Name is required';
+      if (!description.trim()) newErrors.description = 'Description is required';
+      if (!betakey.trim()) newErrors.betakey = 'Beta key is required';
+    }
+    
     if (!password.trim()) newErrors.password = 'Password is required';
     if (!handle.trim()) newErrors.handle = 'Handle is required';
 
     setErrors(newErrors);
     
-    // Validate beta key
-    const isBetaKeyValid = await validateBetaKeyInput(betakey);
+    if (mode === 'signup') {
+      // Validate beta key only in signup mode
+      const isBetaKeyValid = await validateBetaKeyInput(betakey);
+      return Object.keys(newErrors).length === 0 && isBetaKeyValid;
+    }
     
-    return Object.keys(newErrors).length === 0 && isBetaKeyValid;
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -96,27 +109,46 @@ export default function MovieNightGroupForm({ onSubmit }: MovieNightGroupFormPro
     
     try {
       if (await validateForm()) {
-        // Validate beta key one final time before submission
-        const betaKeyResult = await validateBetaKey(betakey);
-        if (!betaKeyResult.isValid || betaKeyResult.inUse) {
-          setBetaKeyStatus({
-            isValid: false,
-            message: betaKeyResult.inUse ? 'Beta key is already in use' : 'Invalid beta key'
-          });
-          return;
-        }
+        if (mode === 'signup') {
+          // Validate beta key one final time before submission
+          const betaKeyResult = await validateBetaKey(betakey);
+          if (!betaKeyResult.isValid || betaKeyResult.inUse) {
+            setBetaKeyStatus({
+              isValid: false,
+              message: betaKeyResult.inUse ? 'Beta key is already in use' : 'Invalid beta key'
+            });
+            return;
+          }
 
-        // Create the movie night group
-        const groupData = { name, description, password, handle, betakey };
-        const newGroup = await createMovieNightGroup(groupData);
-        
-        // Update the store with the new group data
-        setMovieNightGroup(newGroup);
+          // Create the movie night group
+          const groupData = { name, description, password, handle, betakey };
+          const newGroup = await createMovieNightGroup(groupData);
+          
+          // Update the store with the new group data
+          setMovieNightGroup(newGroup);
+        } else {
+          // Sign in logic
+          const response = await fetch('/api/signin-movie-night-group', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ handle, password }),
+          });
+
+          if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to sign in');
+          }
+
+          const { group } = await response.json();
+          setMovieNightGroup(group);
+        }
       }
     } catch (error) {
       setErrors(prev => ({
         ...prev,
-        submit: error instanceof Error ? error.message : 'Failed to create movie night group'
+        submit: error instanceof Error ? error.message : 'Failed to process request'
       }));
     } finally {
       setIsSubmitting(false);
@@ -142,52 +174,102 @@ export default function MovieNightGroupForm({ onSubmit }: MovieNightGroupFormPro
     }
   };
 
+  const toggleMode = () => {
+    setMode(prev => prev === 'signup' ? 'signin' : 'signup');
+    setErrors({});
+    setBetaKeyStatus(null);
+  };
+
   return (
     <div className="w-full max-w-md space-y-8 bg-white p-8 rounded-lg shadow-lg relative">
       {isSubmitting && (
         <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center rounded-lg z-10">
           <div className="flex flex-col items-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
-            <p className="text-gray-600">Creating your movie night group...</p>
+            <p className="text-gray-600">{mode === 'signup' ? 'Creating your movie night group...' : 'Signing in...'}</p>
           </div>
         </div>
       )}
       <div className="flex flex-col items-center">
         <div className="text-center mb-4">
           <p className="text-sm text-gray-600 italic">
-            Create a movie night group to get started.
+            {mode === 'signup' ? 'Create a movie night group to get started.' : 'Sign in to your movie night group.'}
           </p>
         </div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">Create Movie Night Group</h2>
+        <h2 className="text-2xl font-bold text-gray-900 mb-6">
+          {mode === 'signup' ? 'Create Movie Night Group' : 'Sign In to Movie Night Group'}
+        </h2>
         <form onSubmit={handleSubmit} className="w-full space-y-6">
-          <div>
-            <label htmlFor="betakey" className="block text-sm font-medium text-gray-700 mb-1">
-              Beta Key
-            </label>
-            <input
-              id="betakey"
-              name="betakey"
-              type="text"
-              required
-              value={betakey}
-              onChange={handleBetaKeyChange}
-              onBlur={handleBetaKeyBlur}
-              className={`appearance-none rounded-md relative block w-full px-3 py-2 border ${
-                errors.betakey ? 'border-red-500' : betaKeyStatus?.isValid ? 'border-green-500' : 'border-gray-300'
-              } placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
-              placeholder="Enter your beta key"
-              disabled={isSubmitting}
-            />
-            {isValidatingBetaKey && (
-              <p className="mt-1 text-sm text-gray-500">Validating beta key...</p>
-            )}
-            {betaKeyStatus && (
-              <p className={`mt-1 text-sm ${betaKeyStatus.isValid ? 'text-green-600' : 'text-red-600'}`}>
-                {betaKeyStatus.message}
-              </p>
-            )}
-            {errors.betakey && !betaKeyStatus && <p className="mt-1 text-sm text-red-600">{errors.betakey}</p>}
-          </div>
+          {mode === 'signup' && (
+            <>
+              <div>
+                <label htmlFor="betakey" className="block text-sm font-medium text-gray-700 mb-1">
+                  Beta Key
+                </label>
+                <input
+                  id="betakey"
+                  name="betakey"
+                  type="text"
+                  required
+                  value={betakey}
+                  onChange={handleBetaKeyChange}
+                  onBlur={handleBetaKeyBlur}
+                  className={`appearance-none rounded-md relative block w-full px-3 py-2 border ${
+                    errors.betakey ? 'border-red-500' : betaKeyStatus?.isValid ? 'border-green-500' : 'border-gray-300'
+                  } placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+                  placeholder="Enter your beta key"
+                  disabled={isSubmitting}
+                />
+                {isValidatingBetaKey && (
+                  <p className="mt-1 text-sm text-gray-500">Validating beta key...</p>
+                )}
+                {betaKeyStatus && (
+                  <p className={`mt-1 text-sm ${betaKeyStatus.isValid ? 'text-green-600' : 'text-red-600'}`}>
+                    {betaKeyStatus.message}
+                  </p>
+                )}
+                {errors.betakey && !betaKeyStatus && <p className="mt-1 text-sm text-red-600">{errors.betakey}</p>}
+              </div>
+              <div>
+                <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+                  Group Name
+                </label>
+                <input
+                  id="name"
+                  name="name"
+                  type="text"
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className={`appearance-none rounded-md relative block w-full px-3 py-2 border ${
+                    errors.name ? 'border-red-500' : 'border-gray-300'
+                  } placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+                  placeholder="Enter group name"
+                  disabled={isSubmitting}
+                />
+                {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
+              </div>
+              <div>
+                <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+                  Description
+                </label>
+                <textarea
+                  id="description"
+                  name="description"
+                  required
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className={`appearance-none rounded-md relative block w-full px-3 py-2 border ${
+                    errors.description ? 'border-red-500' : 'border-gray-300'
+                  } placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+                  placeholder="Describe your movie night group"
+                  rows={3}
+                  disabled={isSubmitting}
+                />
+                {errors.description && <p className="mt-1 text-sm text-red-600">{errors.description}</p>}
+              </div>
+            </>
+          )}
           <div>
             <label htmlFor="handle" className="block text-sm font-medium text-gray-700 mb-1">
               Group Handle
@@ -208,62 +290,26 @@ export default function MovieNightGroupForm({ onSubmit }: MovieNightGroupFormPro
             {errors.handle && <p className="mt-1 text-sm text-red-600">{errors.handle}</p>}
           </div>
           <div>
-            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-              Group Name
-            </label>
-            <input
-              id="name"
-              name="name"
-              type="text"
-              required
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className={`appearance-none rounded-md relative block w-full px-3 py-2 border ${
-                errors.name ? 'border-red-500' : 'border-gray-300'
-              } placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
-              placeholder="Enter group name"
-              disabled={isSubmitting}
-            />
-            {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
-          </div>
-          <div>
-            <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
-              Description
-            </label>
-            <textarea
-              id="description"
-              name="description"
-              required
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className={`appearance-none rounded-md relative block w-full px-3 py-2 border ${
-                errors.description ? 'border-red-500' : 'border-gray-300'
-              } placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
-              placeholder="Describe your movie night group"
-              rows={3}
-              disabled={isSubmitting}
-            />
-            {errors.description && <p className="mt-1 text-sm text-red-600">{errors.description}</p>}
-          </div>
-          <div>
             <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-              Group Password
+              {mode === 'signup' ? 'Group Password' : 'Password'}
             </label>
             <input
               id="password"
               name="password"
-              type="text"
+              type="password"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className={`appearance-none rounded-md relative block w-full px-3 py-2 border ${
                 errors.password ? 'border-red-500' : 'border-gray-300'
               } placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
-              placeholder="Create a password for group access"
+              placeholder={mode === 'signup' ? "Create a password for group access" : "Enter your password"}
               disabled={isSubmitting}
             />
             {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password}</p>}
-            <p className="mt-1 text-sm text-gray-500">Share this password with your movie night group members</p>
+            {mode === 'signup' && (
+              <p className="mt-1 text-sm text-gray-500">Share this password with your movie night group members</p>
+            )}
           </div>
           <div>
             <button
@@ -275,11 +321,24 @@ export default function MovieNightGroupForm({ onSubmit }: MovieNightGroupFormPro
                   : 'bg-gray-400 cursor-not-allowed'
               } focus:outline-none`}
             >
-              {isSubmitting ? 'Creating...' : 'Create Group'}
+              {isSubmitting 
+                ? (mode === 'signup' ? 'Creating...' : 'Signing in...') 
+                : (mode === 'signup' ? 'Create Group' : 'Sign In')}
             </button>
             {errors.submit && (
               <p className="mt-2 text-sm text-red-600 text-center">{errors.submit}</p>
             )}
+          </div>
+          <div className="text-center">
+            <button
+              type="button"
+              onClick={toggleMode}
+              className="text-sm text-blue-600 hover:text-blue-500"
+            >
+              {mode === 'signup' 
+                ? 'Already have a group? Sign in' 
+                : "Don't have a group? Create one"}
+            </button>
           </div>
         </form>
       </div>
