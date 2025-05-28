@@ -315,45 +315,67 @@ export default function MovieNightDetailsModal({
               </div>
 
               {/* Nominated Movies */}
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="text-sm font-medium text-gray-900">Nominated Movies</h4>
+              <div className="mt-6">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-medium text-gray-900">Nominated Movies</h3>
+                  {showNominateButton && (
+                    <button
+                      type="button"
+                      onClick={handleSearchMovie}
+                      disabled={isNominating}
+                      className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isNominating ? (
+                        <>
+                          <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-gray-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Nominating...
+                        </>
+                      ) : (
+                        'Nominate Movie'
+                      )}
+                    </button>
+                  )}
                 </div>
-                {nominatedMovies.length > 0 ? (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                    {nominatedMovies.map((movie) => (
-                      <button
-                        key={movie.imdb_id}
-                        onClick={() => handleViewMovieDetails(movie)}
-                        className={`group bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 text-left ${
-                          movie.imdb_id === movieNight.imdb_id ? 'ring-2 ring-indigo-500' : ''
-                        }`}
-                      >
-                        <div className="aspect-[2/3] relative rounded-t-lg overflow-hidden">
-                          <Image
-                            src={movie.poster_url === 'N/A' ? '/movie-placeholder.svg' : movie.poster_url}
-                            alt={movie.title}
-                            fill
-                            className="object-cover group-hover:scale-105 transition-transform duration-200"
-                          />
-                          <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-10 transition-opacity duration-200" />
-                        </div>
-                        <div className="p-3">
-                          <h5 className="text-sm font-medium text-gray-900 truncate group-hover:text-indigo-600 transition-colors duration-200">
-                            {movie.title}
-                          </h5>
-                          <p className="text-xs text-gray-500 mt-1">
-                            {movie.year} • {movie.runtime} min
-                          </p>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="bg-gray-50 rounded-lg p-4 text-center">
-                    <p className="text-sm text-gray-500">No movies nominated yet</p>
-                  </div>
-                )}
+                <div className="mt-3 space-y-2">
+                  {nominatedMovies.length > 0 ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                      {nominatedMovies.map((movie) => (
+                        <button
+                          key={movie.imdb_id}
+                          onClick={() => handleViewMovieDetails(movie)}
+                          className={`group bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 text-left ${
+                            movie.imdb_id === movieNight.imdb_id ? 'ring-2 ring-indigo-500' : ''
+                          }`}
+                        >
+                          <div className="aspect-[2/3] relative rounded-t-lg overflow-hidden">
+                            <Image
+                              src={movie.poster_url === 'N/A' ? '/movie-placeholder.svg' : movie.poster_url}
+                              alt={movie.title}
+                              fill
+                              className="object-cover group-hover:scale-105 transition-transform duration-200"
+                            />
+                            <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-10 transition-opacity duration-200" />
+                          </div>
+                          <div className="p-3">
+                            <h5 className="text-sm font-medium text-gray-900 truncate group-hover:text-indigo-600 transition-colors duration-200">
+                              {movie.title}
+                            </h5>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {movie.year} • {movie.runtime} min
+                            </p>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="bg-gray-50 rounded-lg p-4 text-center">
+                      <p className="text-sm text-gray-500">No movies nominated yet</p>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -380,15 +402,6 @@ export default function MovieNightDetailsModal({
                     {isPickingRandom ? 'Picking...' : 'Pick Random Movie'}
                   </button>
                 </>
-              )}
-              {showNominateButton && (
-                <button
-                  type="button"
-                  onClick={handleSearchMovie}
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                >
-                  Nominate Movie
-                </button>
               )}
             </div>
           </div>

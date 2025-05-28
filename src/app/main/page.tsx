@@ -573,6 +573,7 @@ export default function MainPage() {
           onNominateMovie={handleNominateMovie}
           onCancelMovieNight={handleCancelMovieNight}
           onPickRandomMovie={handlePickRandomMovie}
+          showNominateButton={true}
         />
       )}
     </div>
