@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import MovieNightDetailsModal from '@/components/MovieNightDetailsModal';
+import Image from 'next/image';
 
 interface Movie {
   imdb_id: string;
@@ -129,99 +130,118 @@ export default function ProfilePage({ params }: { params: { handle: string } }) 
   const pastNights = movieNights.filter(night => new Date(night.date) <= new Date());
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Group Info */}
-        <div className="bg-white shadow rounded-lg p-6 mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">{group.name}</h1>
-          {group.description && (
-            <p className="mt-2 text-gray-600">{group.description}</p>
-          )}
+    <div className="min-h-screen bg-gray-50">
+      {/* App Branding Header */}
+      <div className="bg-white shadow">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-4">
+            <div className="flex items-center">
+              <Image
+                src="/pickadamnmovie.png"
+                alt="Pick a Damn Movie"
+                width={200}
+                height={50}
+                className="h-12 w-auto"
+              />
+            </div>
+          </div>
         </div>
+      </div>
 
-        {/* Movie Nights */}
-        <div className="space-y-8">
-          {/* Upcoming Movie Nights */}
-          {upcomingNights.length > 0 && (
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">Upcoming Movie Nights</h2>
-              <div className="grid grid-cols-1 gap-4">
-                {upcomingNights.map((night) => (
-                  <button
-                    key={night.id}
-                    onClick={() => setSelectedMovieNight(night)}
-                    className="bg-white shadow rounded-lg p-6 text-left hover:shadow-md transition-shadow duration-200"
-                  >
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="text-lg font-medium text-gray-900">
-                          {new Date(night.date).toLocaleDateString('en-US', {
-                            weekday: 'long',
-                            month: 'long',
-                            day: 'numeric',
-                          })}
-                        </h3>
-                        <p className="text-sm text-gray-500">
-                          {new Date(night.date).toLocaleTimeString('en-US', {
-                            hour: 'numeric',
-                            minute: '2-digit',
-                          })}
-                        </p>
+      <div className="py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Group Info */}
+          <div className="bg-white shadow rounded-lg p-6 mb-8">
+            <h1 className="text-3xl font-bold text-gray-900">{group.name}</h1>
+            {group.description && (
+              <p className="mt-2 text-gray-600">{group.description}</p>
+            )}
+          </div>
+
+          {/* Movie Nights */}
+          <div className="space-y-8">
+            {/* Upcoming Movie Nights */}
+            {upcomingNights.length > 0 && (
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">Upcoming Movie Nights</h2>
+                <div className="grid grid-cols-1 gap-4">
+                  {upcomingNights.map((night) => (
+                    <button
+                      key={night.id}
+                      onClick={() => setSelectedMovieNight(night)}
+                      className="bg-white shadow rounded-lg p-6 text-left hover:shadow-md transition-shadow duration-200"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h3 className="text-lg font-medium text-gray-900">
+                            {new Date(night.date).toLocaleDateString('en-US', {
+                              weekday: 'long',
+                              month: 'long',
+                              day: 'numeric',
+                            })}
+                          </h3>
+                          <p className="text-sm text-gray-500">
+                            {new Date(night.date).toLocaleTimeString('en-US', {
+                              hour: 'numeric',
+                              minute: '2-digit',
+                            })}
+                          </p>
+                        </div>
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          Upcoming
+                        </span>
                       </div>
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        Upcoming
-                      </span>
-                    </div>
-                    <p className="mt-2 text-gray-600">{night.description}</p>
-                  </button>
-                ))}
+                      <p className="mt-2 text-gray-600">{night.description}</p>
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Past Movie Nights */}
-          {pastNights.length > 0 && (
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">Past Movie Nights</h2>
-              <div className="grid grid-cols-1 gap-4">
-                {pastNights.map((night) => (
-                  <button
-                    key={night.id}
-                    onClick={() => setSelectedMovieNight(night)}
-                    className="bg-white shadow rounded-lg p-6 text-left hover:shadow-md transition-shadow duration-200"
-                  >
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="text-lg font-medium text-gray-900">
-                          {new Date(night.date).toLocaleDateString('en-US', {
-                            weekday: 'long',
-                            month: 'long',
-                            day: 'numeric',
-                          })}
-                        </h3>
-                        <p className="text-sm text-gray-500">
-                          {new Date(night.date).toLocaleTimeString('en-US', {
-                            hour: 'numeric',
-                            minute: '2-digit',
-                          })}
-                        </p>
+            {/* Past Movie Nights */}
+            {pastNights.length > 0 && (
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">Past Movie Nights</h2>
+                <div className="grid grid-cols-1 gap-4">
+                  {pastNights.map((night) => (
+                    <button
+                      key={night.id}
+                      onClick={() => setSelectedMovieNight(night)}
+                      className="bg-white shadow rounded-lg p-6 text-left hover:shadow-md transition-shadow duration-200"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h3 className="text-lg font-medium text-gray-900">
+                            {new Date(night.date).toLocaleDateString('en-US', {
+                              weekday: 'long',
+                              month: 'long',
+                              day: 'numeric',
+                            })}
+                          </h3>
+                          <p className="text-sm text-gray-500">
+                            {new Date(night.date).toLocaleTimeString('en-US', {
+                              hour: 'numeric',
+                              minute: '2-digit',
+                            })}
+                          </p>
+                        </div>
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                          Past
+                        </span>
                       </div>
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                        Past
-                      </span>
-                    </div>
-                    <p className="mt-2 text-gray-600">{night.description}</p>
-                  </button>
-                ))}
+                      <p className="mt-2 text-gray-600">{night.description}</p>
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {movieNights.length === 0 && (
-            <div className="text-center py-12">
-              <p className="text-gray-600">No movie nights scheduled yet</p>
-            </div>
-          )}
+            {movieNights.length === 0 && (
+              <div className="text-center py-12">
+                <p className="text-gray-600">No movie nights scheduled yet</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
