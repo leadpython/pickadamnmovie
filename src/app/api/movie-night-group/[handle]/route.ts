@@ -3,14 +3,14 @@ import { supabaseAdmin } from '@/config/supabase';
 
 export async function GET(
   request: Request,
-  { params }: { params: { handle: string } }
+  context: { params: { handle: string } }
 ) {
   try {
     // Fetch the movie night group by handle
     const { data: group, error: groupError } = await supabaseAdmin
       .from('movie_night_group')
       .select('*')
-      .eq('handle', params.handle)
+      .eq('handle', context.params.handle)
       .single();
 
     if (groupError || !group) {
