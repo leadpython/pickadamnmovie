@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useStore } from '@/store/store';
 import Image from 'next/image';
+import MovieNightDetailsModal from '@/components/MovieNightDetailsModal';
 
 interface MovieNight {
   id: string;
@@ -34,6 +35,7 @@ export default function MainPage() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedMovieNight, setSelectedMovieNight] = useState<MovieNight | null>(null);
 
   useEffect(() => {
     const validateSession = async () => {
@@ -140,6 +142,66 @@ export default function MainPage() {
     }
   };
 
+  const handleCancelMovieNight = async () => {
+    if (!selectedMovieNight) return;
+
+    const response = await fetch('/api/movie-night/cancel', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        movieNightId: selectedMovieNight.id,
+        sessionId,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to cancel movie night');
+    }
+
+    // Remove the movie night from the list
+    setMovieNights(prev => prev.filter(mn => mn.id !== selectedMovieNight.id));
+  };
+
+  const handlePickRandomMovie = async () => {
+    if (!selectedMovieNight) return;
+
+    const response = await fetch('/api/movie-night/pick-random', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        movieNightId: selectedMovieNight.id,
+        sessionId,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to pick random movie');
+    }
+
+    const { selectedMovie } = await response.json();
+
+    // Update the movie night in the list
+    setMovieNights(prev => prev.map(mn => 
+      mn.id === selectedMovieNight.id
+        ? { ...mn, imdb_id: selectedMovie.imdb_id }
+        : mn
+    ));
+
+    // Update the selected movie night
+    setSelectedMovieNight(prev => prev ? { ...prev, imdb_id: selectedMovie.imdb_id } : null);
+  };
+
+  const handleNominateMovie = () => {
+    // TODO: Implement movie nomination
+    console.log('Nominate movie clicked');
+  };
+
   // Show loading state while validating or waiting for hydration
   if (!isHydrated || isValidating || isLoading) {
     return (
@@ -228,7 +290,8 @@ export default function MainPage() {
                 return (
                   <div
                     key={movieNight.id}
-                    className="bg-white shadow-sm rounded-lg overflow-hidden hover:shadow-md transition-shadow duration-200"
+                    onClick={() => setSelectedMovieNight(movieNight)}
+                    className="bg-white shadow-sm rounded-lg overflow-hidden hover:shadow-md transition-shadow duration-200 cursor-pointer"
                   >
                     <div className="p-3">
                       <div className="flex items-center space-x-3">
@@ -321,7 +384,8 @@ export default function MainPage() {
                   return (
                     <div
                       key={movieNight.id}
-                      className="bg-white/50 shadow-sm rounded overflow-hidden hover:bg-white/80 transition-colors duration-200"
+                      onClick={() => setSelectedMovieNight(movieNight)}
+                      className="bg-white/50 shadow-sm rounded overflow-hidden hover:bg-white/80 transition-colors duration-200 cursor-pointer"
                     >
                       <div className="px-3 py-2">
                         <div className="flex items-center space-x-2">
@@ -445,6 +509,17 @@ export default function MainPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Movie Night Details Modal */}
+      {selectedMovieNight && (
+        <MovieNightDetailsModal
+          movieNight={selectedMovieNight}
+          onClose={() => setSelectedMovieNight(null)}
+          onNominateMovie={handleNominateMovie}
+          onCancelMovieNight={handleCancelMovieNight}
+          onPickRandomMovie={handlePickRandomMovie}
+        />
       )}
     </div>
   );
