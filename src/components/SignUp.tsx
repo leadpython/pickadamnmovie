@@ -30,7 +30,9 @@ export default function SignUp() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [handleMessage, setHandleMessage] = useState('');
+  const [betaKeyMessage, setBetaKeyMessage] = useState('');
   const [isValidatingHandle, setIsValidatingHandle] = useState(false);
+  const [isValidatingBetaKey, setIsValidatingBetaKey] = useState(false);
 
   // Debounce handle and beta key values
   const debouncedHandle = useDebounce(handle, 1000);
@@ -104,13 +106,10 @@ export default function SignUp() {
           }));
         } else {
           setHandleMessage('Handle is available!');
-          // Simulate beta key validation
-          const isBetaKeyValid = debouncedBetaKey.length >= 6;
           setValidation(prev => ({
             ...prev,
             handle: true,
-            betaKey: isBetaKeyValid,
-            isFormValid: true && isBetaKeyValid && prev.passwordsMatch && groupName.length > 0
+            isFormValid: prev.betaKey && prev.passwordsMatch && groupName.length > 0
           }));
         }
       } catch (error) {
@@ -129,7 +128,60 @@ export default function SignUp() {
     if (debouncedHandle) {
       validateDebouncedFields();
     }
-  }, [debouncedHandle, debouncedBetaKey, groupName]);
+  }, [debouncedHandle, groupName]);
+
+  // Separate effect for beta key validation
+  useEffect(() => {
+    const validateBetaKey = async () => {
+      if (!debouncedBetaKey) return;
+
+      setIsValidatingBetaKey(true);
+      try {
+        // Check beta key against database
+        const response = await fetch('/api/movie-night-group/check-beta-key', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ betaKey: debouncedBetaKey }),
+        });
+
+        const data = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(data.error || 'Error validating beta key');
+        }
+
+        if (data.valid) {
+          setBetaKeyMessage('Valid beta key!');
+          setValidation(prev => ({
+            ...prev,
+            betaKey: true,
+            isFormValid: prev.handle && prev.passwordsMatch && groupName.length > 0
+          }));
+        } else {
+          setBetaKeyMessage('Invalid beta key');
+          setValidation(prev => ({
+            ...prev,
+            betaKey: false,
+            isFormValid: false
+          }));
+        }
+      } catch (error) {
+        console.error('Error validating beta key:', error);
+        setBetaKeyMessage('Error validating beta key');
+        setValidation(prev => ({
+          ...prev,
+          betaKey: false,
+          isFormValid: false
+        }));
+      } finally {
+        setIsValidatingBetaKey(false);
+      }
+    };
+
+    validateBetaKey();
+  }, [debouncedBetaKey, groupName]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -310,13 +362,13 @@ export default function SignUp() {
                   value={betaKey}
                   onChange={handleChange}
                 />
-                {betaKey === debouncedBetaKey && betaKey && !validation.betaKey && (
-                  <p className="mt-1 text-sm text-red-600">Invalid beta key</p>
+                {!isValidatingBetaKey && betaKey && !validation.betaKey && (
+                  <p className="mt-1 text-sm text-red-600">{betaKeyMessage}</p>
                 )}
-                {betaKey === debouncedBetaKey && betaKey && validation.betaKey && (
-                  <p className="mt-1 text-sm text-green-600">Valid beta key!</p>
+                {!isValidatingBetaKey && betaKey && validation.betaKey && (
+                  <p className="mt-1 text-sm text-green-600">{betaKeyMessage}</p>
                 )}
-                {betaKey && betaKey !== debouncedBetaKey && (
+                {isValidatingBetaKey && (
                   <p className="mt-1 text-sm text-gray-500">Validating beta key...</p>
                 )}
               </div>
