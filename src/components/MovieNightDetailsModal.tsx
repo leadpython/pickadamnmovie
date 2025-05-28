@@ -95,6 +95,7 @@ export default function MovieNightDetailsModal({
   const [isViewingDetails, setIsViewingDetails] = useState(false);
   const [secret, setSecret] = useState('');
   const [showSecretInput, setShowSecretInput] = useState(false);
+  const [secretError, setSecretError] = useState<string | null>(null);
   const { sessionId } = useStore();
   const date = new Date(movieNight.date);
   const selectedMovie = movieNight.imdb_id ? localMovies?.[movieNight.imdb_id] : null;
@@ -137,13 +138,22 @@ export default function MovieNightDetailsModal({
     e.preventDefault();
     if (!secret.trim() || !selectedMovieId) return;
 
-    // Get the movie details from the modal
-    const movieDetails = await fetch(`/api/movie/${selectedMovieId}`).then(res => res.json());
-    await submitNomination(movieDetails);
+    setIsNominating(true);
+    setSecretError(null);
+
+    try {
+      // Get the movie details from the modal
+      const movieDetails = await fetch(`/api/omdb/details?imdbId=${selectedMovieId}`).then(res => res.json());
+      await submitNomination(movieDetails);
+    } catch (error) {
+      console.error('Error nominating movie:', error);
+      setSecretError(error instanceof Error ? error.message : 'Failed to nominate movie');
+    } finally {
+      setIsNominating(false);
+    }
   };
 
   const submitNomination = async (movie: OMDBMovie) => {
-    setIsNominating(true);
     try {
       // Determine which endpoint to use based on session type
       const endpoint = sessionId ? '/api/movie-night/nominate' : '/api/movie-night/nominate-public';
@@ -163,6 +173,9 @@ export default function MovieNightDetailsModal({
 
       if (!response.ok) {
         const error = await response.json();
+        if (response.status === 403) {
+          throw new Error('Invalid secret code');
+        }
         throw new Error(error.error || 'Failed to nominate movie');
       }
 
@@ -178,9 +191,7 @@ export default function MovieNightDetailsModal({
       setShowSecretInput(false); // Close the secret input modal
     } catch (error) {
       console.error('Error nominating movie:', error);
-      // You might want to show an error message to the user here
-    } finally {
-      setIsNominating(false);
+      throw error; // Re-throw to be handled by the caller
     }
   };
 
@@ -429,11 +440,19 @@ export default function MovieNightDetailsModal({
                   type="text"
                   id="secret"
                   value={secret}
-                  onChange={(e) => setSecret(e.target.value)}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                  onChange={(e) => {
+                    setSecret(e.target.value);
+                    setSecretError(null); // Clear error when user types
+                  }}
+                  className={`mt-1 block w-full rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm ${
+                    secretError ? 'border-red-300' : 'border-gray-300'
+                  }`}
                   placeholder="Enter the movie night secret"
                   required
                 />
+                {secretError && (
+                  <p className="mt-2 text-sm text-red-600">{secretError}</p>
+                )}
               </div>
               <div className="flex justify-end space-x-3">
                 <button
@@ -441,6 +460,7 @@ export default function MovieNightDetailsModal({
                   onClick={() => {
                     setShowSecretInput(false);
                     setSelectedMovieId(null);
+                    setSecretError(null);
                   }}
                   className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                 >
@@ -449,9 +469,19 @@ export default function MovieNightDetailsModal({
                 <button
                   type="submit"
                   disabled={isNominating}
-                  className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isNominating ? 'Nominating...' : 'Nominate Movie'}
+                  {isNominating ? (
+                    <>
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Validating...
+                    </>
+                  ) : (
+                    'Nominate Movie'
+                  )}
                 </button>
               </div>
             </form>

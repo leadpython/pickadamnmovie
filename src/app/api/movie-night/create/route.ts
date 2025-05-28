@@ -3,7 +3,7 @@ import { supabaseAdmin } from '@/config/supabase';
 
 export async function POST(request: Request) {
   try {
-    const { date, description, sessionId } = await request.json();
+    const { date, description, sessionId, secret } = await request.json();
 
     // Validate required fields
     if (!date || !description || !sessionId) {
@@ -34,6 +34,7 @@ export async function POST(request: Request) {
         date,
         description,
         movie_night_group_id: session.movie_night_group_id,
+        secret: secret || null, // Set secret if provided, otherwise null
       })
       .select()
       .single();

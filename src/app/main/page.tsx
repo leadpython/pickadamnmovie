@@ -42,10 +42,11 @@ interface MovieNight {
   movie_night_group_id: string;
 }
 
-interface NewMovieNightFormData {
+interface FormData {
   date: string;
   time: string;
   description: string;
+  secret: string;
 }
 
 export default function MainPage() {
@@ -55,10 +56,11 @@ export default function MainPage() {
   const [movieNights, setMovieNights] = useState<MovieNight[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState<NewMovieNightFormData>({
+  const [formData, setFormData] = useState<FormData>({
     date: '',
     time: '',
     description: '',
+    secret: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -82,6 +84,7 @@ export default function MainPage() {
       }
 
       try {
+        setIsLoading(true);
         console.log('Making API request to validate session...');
         // Validate session through API
         const response = await fetch('/api/session/validate', {
@@ -115,7 +118,6 @@ export default function MainPage() {
 
           const movieNightsData = await movieNightsResponse.json();
           setMovieNights(movieNightsData);
-          setIsLoading(false);
         } else {
           console.log('Session validation failed:', data.error);
           router.push('/');
@@ -123,6 +125,8 @@ export default function MainPage() {
       } catch (error) {
         console.error('Session validation error:', error);
         router.push('/');
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -145,6 +149,7 @@ export default function MainPage() {
         body: JSON.stringify({
           date: dateTime.toISOString(),
           description: formData.description,
+          secret: formData.secret,
           sessionId,
         }),
       });
@@ -160,7 +165,7 @@ export default function MainPage() {
 
       // Close modal and reset form
       setIsModalOpen(false);
-      setFormData({ date: '', time: '', description: '' });
+      setFormData({ date: '', time: '', description: '', secret: '' });
     } catch (error) {
       console.error('Error creating movie night:', error);
       setError(error instanceof Error ? error.message : 'Failed to create movie night');
@@ -504,25 +509,39 @@ export default function MainPage() {
                       id="time"
                       value={formData.time}
                       onChange={(e) => setFormData(prev => ({ ...prev, time: e.target.value }))}
-                      step="900"
                       required
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2"
                     />
                   </div>
-                </div>
-                <div>
-                  <label htmlFor="description" className="block text-sm font-medium text-gray-700">
-                    Description
-                  </label>
-                  <textarea
-                    id="description"
-                    required
-                    rows={3}
-                    value={formData.description}
-                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                    placeholder="What's this movie night about?"
-                  />
+                  <div>
+                    <label htmlFor="description" className="block text-sm font-medium text-gray-700">
+                      Description
+                    </label>
+                    <textarea
+                      id="description"
+                      value={formData.description}
+                      onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                      required
+                      rows={3}
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="secret" className="block text-sm font-medium text-gray-700">
+                      Secret Password (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      id="secret"
+                      value={formData.secret}
+                      onChange={(e) => setFormData(prev => ({ ...prev, secret: e.target.value }))}
+                      placeholder="Enter a secret password for public nominations"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2"
+                    />
+                    <p className="mt-1 text-sm text-gray-500">
+                      If set, users will need this password to nominate movies without being logged in.
+                    </p>
+                  </div>
                 </div>
                 <div className="mt-5 sm:mt-6 sm:grid sm:grid-flow-row-dense sm:grid-cols-2 sm:gap-3">
                   <button
