@@ -8,23 +8,25 @@ export async function GET(
   try {
     const params_ = await params;
     const { groupId } = params_;
+    console.log('Fetching movie nights for group:', groupId);
 
     const { data: movieNights, error } = await supabaseAdmin
       .from('movie_night')
       .select('*')
       .eq('movie_night_group_id', groupId)
-      .gte('date', new Date().toISOString())
       .order('date', { ascending: true });
 
     if (error) {
+      console.error('Supabase error:', error);
       throw error;
     }
 
+    console.log('Found movie nights:', movieNights);
     return NextResponse.json({ movieNights });
   } catch (error) {
-    console.error('Error fetching upcoming movie nights:', error);
+    console.error('Error fetching movie nights:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch upcoming movie nights' },
+      { error: 'Failed to fetch movie nights' },
       { status: 500 }
     );
   }

@@ -23,6 +23,7 @@ interface MovieNight {
   description?: string;
   movie?: string;
   movies?: { [key: string]: Movie };
+  imdb_id?: string;
 }
 
 interface MovieNightGroup {

@@ -183,3 +183,19 @@ export const nominateMovie = async (movieNightId: string, movie: {
     message: result.message
   };
 };
+
+export const selectRandomMovie = async (movieNightId: string) => {
+  const response = await fetch(`/api/movie-night/${movieNightId}/select-random`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || 'Failed to select random movie');
+  }
+
+  return response.json();
+};

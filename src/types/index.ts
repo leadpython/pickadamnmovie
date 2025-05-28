@@ -1,16 +1,25 @@
 export interface Movie {
-  id: string;
-  title: string;
-  nominatedBy: string;
+  Title: string;
+  Year: string;
+  imdbID: string;
+  Type: string;
+  Poster: string;
+  Plot?: string;
+  Director?: string;
+  Actors?: string;
+  Genre?: string;
+  Runtime?: string;
+  Rated?: string;
+  imdbRating?: string;
 }
 
 export interface MovieNight {
   id: string;
   date: string;
-  status: 'upcoming' | 'completed';
-  movie?: string;
   description?: string;
-  nominatedMovies?: Movie[];
+  status: 'upcoming' | 'completed';
+  imdb_id?: string;
+  movies?: Record<string, Movie>;
 }
 
 export interface MovieNightGroup {

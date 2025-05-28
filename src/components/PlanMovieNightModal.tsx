@@ -40,7 +40,11 @@ export default function PlanMovieNightModal({ isOpen, onClose, onSubmit, movieNi
       return;
     }
 
-    onSubmit({ date, description });
+    // Convert the date to ISO string to preserve timezone
+    const dateWithTime = new Date(date);
+    const isoDate = dateWithTime.toISOString();
+
+    onSubmit({ date: isoDate, description });
     onClose();
   };
 
@@ -67,11 +71,11 @@ export default function PlanMovieNightModal({ isOpen, onClose, onSubmit, movieNi
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-1">
-              Date
+              Date and Time
             </label>
             <input
               id="date"
-              type="date"
+              type="datetime-local"
               required
               value={date}
               onChange={(e) => setDate(e.target.value)}

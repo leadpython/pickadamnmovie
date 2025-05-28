@@ -47,11 +47,27 @@ export async function POST(request: Request) {
     // Remove sensitive data before sending response
     const { betakey: _, secret: __, ...safeGroupData } = group;
 
+    // Fetch upcoming movie nights for this group
+    const { data: movieNights, error: movieNightsError } = await supabaseAdmin
+      .from('movie_night')
+      .select('*')
+      .eq('movie_night_group_id', group.id)
+      .gte('date', new Date().toISOString())
+      .order('date', { ascending: true });
+
+    if (movieNightsError) {
+      console.error('Error fetching movie nights:', movieNightsError);
+      return NextResponse.json(
+        { error: 'Error fetching movie nights' },
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json({
       success: true,
       group: {
         ...safeGroupData,
-        upcomingMovieNights: []
+        upcomingMovieNights: movieNights || []
       }
     });
   } catch (error) {
