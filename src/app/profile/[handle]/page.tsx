@@ -139,7 +139,7 @@ export default function ProfilePage({ params }: PageProps) {
       {/* App Branding Header */}
       <div className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
+          <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
               <Image
                 src="/pickadamnmovie.png"
@@ -153,52 +153,105 @@ export default function ProfilePage({ params }: PageProps) {
         </div>
       </div>
 
-      <div className="py-12">
+      <div className="py-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Group Info */}
-          <div className="bg-white shadow rounded-lg p-6 mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">{group.name}</h1>
+          <div className="bg-white shadow-sm rounded-lg p-4 mb-6">
+            <h1 className="text-xl font-semibold text-gray-900">{group.name}</h1>
             {group.description && (
-              <p className="mt-2 text-gray-600">{group.description}</p>
+              <p className="mt-1 text-sm text-gray-600">{group.description}</p>
             )}
           </div>
 
           {/* Movie Nights */}
-          <div className="space-y-8">
+          <div className="space-y-6">
             {/* Upcoming Movie Nights */}
             {upcomingNights.length > 0 && (
               <div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-4">Upcoming Movie Nights</h2>
-                <div className="grid grid-cols-1 gap-4">
-                  {upcomingNights.map((night) => (
-                    <button
-                      key={night.id}
-                      onClick={() => setSelectedMovieNight(night)}
-                      className="bg-white shadow rounded-lg p-6 text-left hover:shadow-md transition-shadow duration-200"
-                    >
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h3 className="text-lg font-medium text-gray-900">
-                            {new Date(night.date).toLocaleDateString('en-US', {
-                              weekday: 'long',
-                              month: 'long',
-                              day: 'numeric',
-                            })}
-                          </h3>
-                          <p className="text-sm text-gray-500">
-                            {new Date(night.date).toLocaleTimeString('en-US', {
-                              hour: 'numeric',
-                              minute: '2-digit',
-                            })}
-                          </p>
+                <div className="sm:flex sm:items-center">
+                  <div className="sm:flex-auto">
+                    <h2 className="text-lg font-semibold text-gray-900">Upcoming Movie Nights</h2>
+                  </div>
+                </div>
+                <div className="mt-4 space-y-2">
+                  {upcomingNights.map((night) => {
+                    const date = new Date(night.date);
+                    const selectedMovie = night.imdb_id && night.movies ? night.movies[night.imdb_id] : null;
+
+                    return (
+                      <button
+                        key={night.id}
+                        onClick={() => setSelectedMovieNight(night)}
+                        className="w-full bg-white shadow-sm rounded-lg overflow-hidden hover:shadow-md transition-shadow duration-200 text-left"
+                      >
+                        <div className="p-3">
+                          <div className="flex items-center space-x-3">
+                            {/* Movie Poster */}
+                            <div className="flex-shrink-0 w-16 h-24 relative rounded overflow-hidden border border-gray-200">
+                              {selectedMovie ? (
+                                <Image
+                                  src={selectedMovie.poster_url}
+                                  alt={selectedMovie.title}
+                                  fill
+                                  className="object-cover"
+                                />
+                              ) : (
+                                <div className="absolute inset-0 flex flex-col items-center justify-center p-1 bg-gray-100">
+                                  <div className="w-6 h-6 mb-1">
+                                    <svg className="w-full h-full text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
+                                    </svg>
+                                  </div>
+                                  <span className="text-[10px] text-gray-500 text-center">
+                                    No Movie
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Movie Night Details */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <h3 className="text-sm font-medium text-gray-900">
+                                    {date.toLocaleDateString('en-US', {
+                                      weekday: 'short',
+                                      month: 'short',
+                                      day: 'numeric',
+                                    })}
+                                  </h3>
+                                  <p className="text-xs text-gray-500">
+                                    {date.toLocaleTimeString('en-US', {
+                                      hour: 'numeric',
+                                      minute: '2-digit',
+                                    })}
+                                  </p>
+                                </div>
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                  Upcoming
+                                </span>
+                              </div>
+
+                              <div className="mt-1">
+                                <h4 className="text-sm font-medium text-gray-900">
+                                  {selectedMovie ? selectedMovie.title : 'No movie selected yet'}
+                                </h4>
+                                {selectedMovie && (
+                                  <p className="text-xs text-gray-500">
+                                    {selectedMovie.year} • {selectedMovie.runtime} min
+                                  </p>
+                                )}
+                              </div>
+
+                              <p className="mt-1 text-xs text-gray-600 line-clamp-1">
+                                {night.description}
+                              </p>
+                            </div>
+                          </div>
                         </div>
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          Upcoming
-                        </span>
-                      </div>
-                      <p className="mt-2 text-gray-600">{night.description}</p>
-                    </button>
-                  ))}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -206,44 +259,77 @@ export default function ProfilePage({ params }: PageProps) {
             {/* Past Movie Nights */}
             {pastNights.length > 0 && (
               <div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-4">Past Movie Nights</h2>
-                <div className="grid grid-cols-1 gap-4">
-                  {pastNights.map((night) => (
-                    <button
-                      key={night.id}
-                      onClick={() => setSelectedMovieNight(night)}
-                      className="bg-white shadow rounded-lg p-6 text-left hover:shadow-md transition-shadow duration-200"
-                    >
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h3 className="text-lg font-medium text-gray-900">
-                            {new Date(night.date).toLocaleDateString('en-US', {
-                              weekday: 'long',
-                              month: 'long',
-                              day: 'numeric',
-                            })}
-                          </h3>
-                          <p className="text-sm text-gray-500">
-                            {new Date(night.date).toLocaleTimeString('en-US', {
-                              hour: 'numeric',
-                              minute: '2-digit',
-                            })}
-                          </p>
+                <div className="sm:flex sm:items-center">
+                  <div className="sm:flex-auto">
+                    <h2 className="text-lg font-semibold text-gray-900">Past Movie Nights</h2>
+                  </div>
+                </div>
+                <div className="mt-3 space-y-1">
+                  {pastNights.map((night) => {
+                    const date = new Date(night.date);
+                    const selectedMovie = night.imdb_id && night.movies ? night.movies[night.imdb_id] : null;
+
+                    return (
+                      <button
+                        key={night.id}
+                        onClick={() => setSelectedMovieNight(night)}
+                        className="w-full bg-white/50 shadow-sm rounded overflow-hidden hover:bg-white/80 transition-colors duration-200 text-left"
+                      >
+                        <div className="px-3 py-2">
+                          <div className="flex items-center space-x-2">
+                            {/* Tiny Movie Poster */}
+                            <div className="flex-shrink-0 w-8 h-12 relative rounded overflow-hidden border border-gray-200">
+                              {selectedMovie ? (
+                                <Image
+                                  src={selectedMovie.poster_url}
+                                  alt={selectedMovie.title}
+                                  fill
+                                  className="object-cover"
+                                />
+                              ) : (
+                                <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
+                                  <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
+                                  </svg>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Movie Night Details */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-2">
+                                  <span className="text-xs font-medium text-gray-600">
+                                    {date.toLocaleDateString('en-US', {
+                                      month: 'short',
+                                      day: 'numeric',
+                                    })}
+                                  </span>
+                                  <span className="text-xs text-gray-500">
+                                    {date.toLocaleTimeString('en-US', {
+                                      hour: 'numeric',
+                                      minute: '2-digit',
+                                    })}
+                                  </span>
+                                </div>
+                                <span className="text-xs text-gray-600 truncate ml-2">
+                                  {selectedMovie ? selectedMovie.title : 'No movie selected'}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
                         </div>
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                          Past
-                        </span>
-                      </div>
-                      <p className="mt-2 text-gray-600">{night.description}</p>
-                    </button>
-                  ))}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
 
             {movieNights.length === 0 && (
-              <div className="text-center py-12">
-                <p className="text-gray-600">No movie nights scheduled yet</p>
+              <div className="text-center py-8">
+                <h3 className="text-sm font-medium text-gray-900">No movie nights scheduled yet</h3>
+                <p className="mt-1 text-xs text-gray-500">Get started by creating your first movie night!</p>
               </div>
             )}
           </div>
