@@ -157,7 +157,7 @@ export default function MovieNightDetailsModal({
   };
 
   const handlePickRandomMovie = async () => {
-    if (!movieNight.movies || Object.keys(movieNight.movies).length === 0) return;
+    if (!localMovies || Object.keys(localMovies).length === 0) return;
     
     setIsPickingRandom(true);
     try {
@@ -335,7 +335,7 @@ export default function MovieNightDetailsModal({
               <button
                 type="button"
                 onClick={handlePickRandomMovie}
-                disabled={isPickingRandom || !movieNight.movies || Object.keys(movieNight.movies).length === 0}
+                disabled={isPickingRandom || !localMovies || Object.keys(localMovies).length === 0}
                 className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isPickingRandom ? 'Picking...' : 'Pick Random Movie'}
