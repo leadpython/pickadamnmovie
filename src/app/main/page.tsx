@@ -233,9 +233,9 @@ export default function MainPage() {
                 <Image
                   src="/pickadamnmovie.png"
                   alt="PickADamnMovie"
-                  width={180}
-                  height={40}
-                  className="h-8 w-auto"
+                  width={200}
+                  height={0}
+                  className="h-12 w-auto"
                   priority
                 />
               </div>
@@ -327,15 +327,6 @@ export default function MainPage() {
                                 })}
                               </p>
                             </div>
-                            <span className={`inline-flex rounded-full px-2 text-xs font-semibold leading-5 ${
-                              status === 'Movie Selected' 
-                                ? 'bg-green-100 text-green-800'
-                                : status === 'Voting'
-                                ? 'bg-yellow-100 text-yellow-800'
-                                : 'bg-gray-100 text-gray-800'
-                            }`}>
-                              {status}
-                            </span>
                           </div>
 
                           <div className="mt-1">

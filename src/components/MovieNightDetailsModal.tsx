@@ -60,6 +60,7 @@ export default function MovieNightDetailsModal({
   const [selectedMovieId, setSelectedMovieId] = useState<string | null>(null);
   const [isNominating, setIsNominating] = useState(false);
   const [localMovies, setLocalMovies] = useState<Record<string, Movie> | null>(movieNight.movies);
+  const [isViewingDetails, setIsViewingDetails] = useState(false);
   const date = new Date(movieNight.date);
   const selectedMovie = movieNight.imdb_id ? localMovies?.[movieNight.imdb_id] : null;
   const nominatedMovies = localMovies ? Object.values(localMovies) : [];
@@ -120,6 +121,11 @@ export default function MovieNightDetailsModal({
     } finally {
       setIsNominating(false);
     }
+  };
+
+  const handleViewMovieDetails = (movie: Movie) => {
+    setSelectedMovieId(movie.imdb_id);
+    setIsViewingDetails(true);
   };
 
   return (
@@ -210,9 +216,10 @@ export default function MovieNightDetailsModal({
                 {nominatedMovies.length > 0 ? (
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                     {nominatedMovies.map((movie) => (
-                      <div
+                      <button
                         key={movie.imdb_id}
-                        className="group bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200"
+                        onClick={() => handleViewMovieDetails(movie)}
+                        className="group bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 text-left"
                       >
                         <div className="aspect-[2/3] relative rounded-t-lg overflow-hidden">
                           <Image
@@ -231,7 +238,7 @@ export default function MovieNightDetailsModal({
                             {movie.year} • {movie.runtime} min
                           </p>
                         </div>
-                      </div>
+                      </button>
                     ))}
                   </div>
                 ) : (
@@ -279,8 +286,11 @@ export default function MovieNightDetailsModal({
       {selectedMovieId && (
         <MovieDetailsModal
           imdbId={selectedMovieId}
-          onClose={() => setSelectedMovieId(null)}
-          onNominate={handleNominateMovie}
+          onClose={() => {
+            setSelectedMovieId(null);
+            setIsViewingDetails(false);
+          }}
+          onNominate={isViewingDetails ? undefined : handleNominateMovie}
           isNominating={isNominating}
         />
       )}
