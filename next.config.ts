@@ -2,13 +2,11 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
-  experimental: {
-    turbo: {
-      rules: {
-        // Suppress punycode deprecation warning
-        '**/node_modules/punycode/**': {
-          warnings: false
-        }
+  turbopack: {
+    rules: {
+      // Suppress punycode deprecation warning
+      '**/node_modules/punycode/**': {
+        warnings: false
       }
     }
   },

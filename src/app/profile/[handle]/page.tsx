@@ -48,7 +48,11 @@ interface MovieNightGroup {
   created_at: string;
 }
 
-export default function ProfilePage({ params }: { params: { handle: string } }) {
+interface PageProps {
+  params: Promise<{ handle: string }>;
+}
+
+export default function ProfilePage({ params }: PageProps) {
   const [group, setGroup] = useState<MovieNightGroup | null>(null);
   const [movieNights, setMovieNights] = useState<MovieNight[]>([]);
   const [loading, setLoading] = useState(true);
@@ -58,8 +62,9 @@ export default function ProfilePage({ params }: { params: { handle: string } }) 
   useEffect(() => {
     const fetchData = async () => {
       try {
+        const { handle } = await params;
         // Fetch movie night group data
-        const response = await fetch(`/api/movie-night-group/${params.handle}`);
+        const response = await fetch(`/api/movie-night-group/${handle}`);
         if (!response.ok) {
           throw new Error('Failed to fetch movie night group');
         }
@@ -75,7 +80,7 @@ export default function ProfilePage({ params }: { params: { handle: string } }) 
     };
 
     fetchData();
-  }, [params.handle]);
+  }, [params]);
 
   const handleNominateMovie = (movie: Movie, movies: Record<string, Movie>) => {
     if (selectedMovieNight) {
