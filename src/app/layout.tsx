@@ -30,7 +30,6 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <IntroAnimation />
-        <Logo className="p-2 absolute top-0 left-0" />
         {children}
       </body>
     </html>

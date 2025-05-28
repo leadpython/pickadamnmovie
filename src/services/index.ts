@@ -199,3 +199,20 @@ export const selectRandomMovie = async (movieNightId: string) => {
 
   return response.json();
 };
+
+export const fetchMovieNightGroupByHandle = async (handle: string): Promise<MovieNightGroup | null> => {
+  try {
+    const response = await fetch(`/api/movie-night-group/${handle}`);
+    if (!response.ok) {
+      if (response.status === 404) {
+        return null;
+      }
+      throw new Error('Failed to fetch movie night group');
+    }
+    const data = await response.json();
+    return data.group;
+  } catch (error) {
+    console.error('Error fetching movie night group:', error);
+    return null;
+  }
+};

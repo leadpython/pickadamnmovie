@@ -6,6 +6,7 @@ import MovieNightDetailsModal from './MovieNightDetailsModal';
 import { createMovieNight, fetchUpcomingMovieNights, deleteMovieNight, selectRandomMovie, getMovieDetails } from '@/services';
 import { useStore } from '@/store/store';
 import { Movie, MovieNight, MovieNightGroup } from '@/types';
+import Logo from '@/components/Logo';
 
 const formatDate = (dateString: string) => {
   const date = new Date(dateString);
@@ -211,99 +212,43 @@ export default function MovieNightGroupDashboard() {
   }
 
   return (
-    <div className="w-full max-w-4xl space-y-8 bg-white p-8 rounded-lg shadow-lg">
-      <div className="flex flex-col">
+    <div className="w-full min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">{movieNightGroup.name}</h1>
-          <p className="text-gray-600">{movieNightGroup.description}</p>
+          <Logo className="w-full" />
         </div>
 
-        <div className="space-y-6">
-          <div className="flex justify-between items-center">
-            <h2 className="text-xl font-semibold text-gray-900">Upcoming Movie Nights</h2>
-            <button 
-              onClick={() => setIsPlanModalOpen(true)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-            >
-              Plan New Movie Night
-            </button>
+        <div className="bg-white rounded-lg p-6 sm:p-8">
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">{movieNightGroup.name}</h1>
+            <p className="text-gray-600">{movieNightGroup.description}</p>
           </div>
 
-          {upcomingMovieNights.length > 0 ? (
-            <div className="space-y-4">
-              {upcomingMovieNights.map((movieNight) => (
-                <div
-                  key={movieNight.id}
-                  className="bg-white rounded-lg shadow p-4 hover:shadow-md transition-shadow cursor-pointer"
-                  onClick={() => {
-                    setSelectedMovieNight(movieNight);
-                    setIsDetailsModalOpen(true);
-                  }}
-                >
-                  <div className="flex items-start gap-4">
-                    {movieNight.imdb_id && (
-                      <div className="w-16 h-24 flex-shrink-0">
-                        <img
-                          src={movieNight.movies?.[movieNight.imdb_id]?.Poster || '/placeholder-poster.jpg'}
-                          alt="Selected movie poster"
-                          className="w-full h-full object-cover rounded"
-                        />
-                      </div>
-                    )}
-                    <div className="flex-1">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h3 className="text-lg font-semibold text-gray-900">
-                              {formatDate(movieNight.date)}
-                            </h3>
-                            <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
-                              Upcoming
-                            </span>
-                          </div>
-                          {movieNight.description && (
-                            <p className="text-gray-600 mt-1">{movieNight.description}</p>
-                          )}
-                        </div>
-                      </div>
-                      {movieNight.imdb_id && (
-                        <p className="text-sm text-gray-500 mt-2">
-                          Selected: {movieNight.movies?.[movieNight.imdb_id]?.Title}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8 bg-gray-50 rounded-lg">
-              <p className="text-gray-600">No upcoming movie nights planned yet.</p>
+          <div className="space-y-8">
+            <div className="flex justify-between items-center">
+              <h2 className="text-xl font-semibold text-gray-900">Upcoming Movie Nights</h2>
               <button 
                 onClick={() => setIsPlanModalOpen(true)}
-                className="mt-4 text-blue-600 hover:text-blue-700 font-medium"
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
               >
-                Plan your first movie night →
+                Plan New Movie Night
               </button>
             </div>
-          )}
 
-          {pastMovieNights.length > 0 && (
-            <div className="mt-12">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Past Movie Nights</h2>
-              <div className="space-y-4">
-                {pastMovieNights.map((movieNight) => (
+            {upcomingMovieNights.length > 0 ? (
+              <div className="space-y-8">
+                {upcomingMovieNights.map((movieNight) => (
                   <div
                     key={movieNight.id}
-                    className="bg-white rounded-lg shadow p-4 hover:shadow-md transition-shadow cursor-pointer"
+                    className="border-b border-gray-200 pb-8 last:border-b-0 last:pb-0 cursor-pointer"
                     onClick={() => {
                       setSelectedMovieNight(movieNight);
                       setIsDetailsModalOpen(true);
                     }}
                   >
-                    <div className="flex items-start gap-4">
+                    <div className="flex items-start gap-6">
                       {movieNight.imdb_id && (
-                        <div className="w-16 h-24 flex-shrink-0">
+                        <div className="w-24 h-36 flex-shrink-0">
                           <img
                             src={movieNight.movies?.[movieNight.imdb_id]?.Poster || '/placeholder-poster.jpg'}
                             alt="Selected movie poster"
@@ -311,24 +256,24 @@ export default function MovieNightGroupDashboard() {
                           />
                         </div>
                       )}
-                      <div className="flex-1">
+                      <div className="flex-1 min-w-0">
                         <div className="flex justify-between items-start">
                           <div>
                             <div className="flex items-center gap-2">
-                              <h3 className="text-lg font-semibold text-gray-900">
+                              <h3 className="text-xl font-semibold text-gray-900">
                                 {formatDate(movieNight.date)}
                               </h3>
-                              <span className="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded-full">
-                                Past
+                              <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
+                                Upcoming
                               </span>
                             </div>
                             {movieNight.description && (
-                              <p className="text-gray-600 mt-1">{movieNight.description}</p>
+                              <p className="text-gray-600 mt-2 text-lg">{movieNight.description}</p>
                             )}
                           </div>
                         </div>
                         {movieNight.imdb_id && (
-                          <p className="text-sm text-gray-500 mt-2">
+                          <p className="text-sm text-gray-500 mt-3">
                             Selected: {movieNight.movies?.[movieNight.imdb_id]?.Title}
                           </p>
                         )}
@@ -337,8 +282,70 @@ export default function MovieNightGroupDashboard() {
                   </div>
                 ))}
               </div>
-            </div>
-          )}
+            ) : (
+              <div className="text-center py-12 bg-gray-50 rounded-lg">
+                <p className="text-gray-600 text-lg">No upcoming movie nights planned yet.</p>
+                <button 
+                  onClick={() => setIsPlanModalOpen(true)}
+                  className="mt-4 text-blue-600 hover:text-blue-700 font-medium text-lg"
+                >
+                  Plan your first movie night →
+                </button>
+              </div>
+            )}
+
+            {pastMovieNights.length > 0 && (
+              <div className="mt-12">
+                <h2 className="text-lg font-medium text-gray-600 mb-4">Past Movie Nights</h2>
+                <div className="space-y-4">
+                  {pastMovieNights.map((movieNight) => (
+                    <div
+                      key={movieNight.id}
+                      className="border-b border-gray-100 pb-4 last:border-b-0 last:pb-0 cursor-pointer hover:bg-gray-50 transition-colors duration-150"
+                      onClick={() => {
+                        setSelectedMovieNight(movieNight);
+                        setIsDetailsModalOpen(true);
+                      }}
+                    >
+                      <div className="flex items-start gap-4">
+                        {movieNight.imdb_id && (
+                          <div className="w-16 h-24 flex-shrink-0">
+                            <img
+                              src={movieNight.movies?.[movieNight.imdb_id]?.Poster || '/placeholder-poster.jpg'}
+                              alt="Selected movie poster"
+                              className="w-full h-full object-cover rounded opacity-75"
+                            />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <h3 className="text-base font-medium text-gray-600">
+                                  {formatDate(movieNight.date)}
+                                </h3>
+                                <span className="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-600 rounded-full">
+                                  Past
+                                </span>
+                              </div>
+                              {movieNight.description && (
+                                <p className="text-sm text-gray-500 mt-1">{movieNight.description}</p>
+                              )}
+                            </div>
+                          </div>
+                          {movieNight.imdb_id && (
+                            <p className="text-xs text-gray-400 mt-2">
+                              Selected: {movieNight.movies?.[movieNight.imdb_id]?.Title}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
