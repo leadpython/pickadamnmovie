@@ -53,6 +53,7 @@ export async function POST(request: Request) {
         handle,
         name: groupName,
         secret: hashedPassword,
+        betakey: betaKey,
       })
       .select()
       .single();
