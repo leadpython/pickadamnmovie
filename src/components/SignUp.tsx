@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import useDebounce from '@/hooks/useDebounce';
+import { useRouter } from 'next/navigation';
+import { useStore } from '@/store/store';
 
 interface ValidationState {
   handle: boolean;
@@ -12,6 +14,8 @@ interface ValidationState {
 }
 
 export default function SignUp() {
+  const router = useRouter();
+  const setSession = useStore((state) => state.setSession);
   const [handle, setHandle] = useState('');
   const [groupName, setGroupName] = useState('');
   const [password, setPassword] = useState('');
@@ -23,6 +27,12 @@ export default function SignUp() {
     passwordsMatch: true,
     isFormValid: false
   });
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [handleMessage, setHandleMessage] = useState('');
+  const [betaKeyMessage, setBetaKeyMessage] = useState('');
+  const [isHandleValid, setIsHandleValid] = useState(false);
+  const [isBetaKeyValid, setIsBetaKeyValid] = useState(false);
 
   // Debounce handle and beta key values
   const debouncedHandle = useDebounce(handle, 1000);
@@ -47,8 +57,10 @@ export default function SignUp() {
   // Simulate debounced validation for handle and beta key
   useEffect(() => {
     const validateDebouncedFields = async () => {
-      // Simulate handle availability check
-      const isHandleAvailable = debouncedHandle.length >= 3;
+      // Validate handle format
+      const handleRegex = /^[a-z0-9_.]+$/;
+      const isHandleFormatValid = handleRegex.test(debouncedHandle);
+      const isHandleAvailable = isHandleFormatValid && debouncedHandle.length >= 3;
       
       // Simulate beta key validation
       const isBetaKeyValid = debouncedBetaKey.length >= 6;
@@ -59,17 +71,76 @@ export default function SignUp() {
         betaKey: isBetaKeyValid,
         isFormValid: isHandleAvailable && isBetaKeyValid && prev.passwordsMatch && groupName.length > 0
       }));
+
+      // Update handle message
+      if (!isHandleFormatValid && debouncedHandle) {
+        setHandleMessage('Handle can only contain lowercase letters, numbers, underscores, and dots');
+        setIsHandleValid(false);
+      } else if (isHandleAvailable) {
+        setHandleMessage('Handle is available!');
+        setIsHandleValid(true);
+      } else if (debouncedHandle.length < 3) {
+        setHandleMessage('Handle must be at least 3 characters');
+        setIsHandleValid(false);
+      } else {
+        setHandleMessage('Handle is already taken!');
+        setIsHandleValid(false);
+      }
     };
 
     validateDebouncedFields();
   }, [debouncedHandle, debouncedBetaKey, groupName]);
 
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    if (name === 'handle') {
+      // Convert to lowercase and remove any invalid characters
+      const sanitizedValue = value.toLowerCase().replace(/[^a-z0-9_.]/g, '');
+      setHandle(sanitizedValue);
+    } else if (name === 'groupName') {
+      setGroupName(value);
+    } else if (name === 'password') {
+      setPassword(value);
+    } else if (name === 'confirmPassword') {
+      setConfirmPassword(value);
+    } else if (name === 'betaKey') {
+      setBetaKey(value);
+    }
+    
+    // Reset error when user makes changes
+    setError('');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validation.isFormValid) return;
-    
-    // TODO: Implement sign up logic
-    console.log('Sign up:', { handle, groupName, password, betaKey });
+    setIsLoading(true);
+    setError('');
+
+    try {
+      const response = await fetch('/api/movie-night-group/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ handle, groupName, password, betaKey }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to sign up');
+      }
+
+      // Store session in Zustand store
+      setSession(data.sessionId, data.group);
+
+      // Redirect to main page after successful signup
+      router.push('/main');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -107,13 +178,13 @@ export default function SignUp() {
                   } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm`}
                   placeholder="Enter your handle"
                   value={handle}
-                  onChange={(e) => setHandle(e.target.value)}
+                  onChange={handleChange}
                 />
                 {handle === debouncedHandle && handle && !validation.handle && (
-                  <p className="mt-1 text-sm text-red-600">Handle is already taken!</p>
+                  <p className="mt-1 text-sm text-red-600">{handleMessage}</p>
                 )}
                 {handle === debouncedHandle && handle && validation.handle && (
-                  <p className="mt-1 text-sm text-green-600">Handle is available!</p>
+                  <p className="mt-1 text-sm text-green-600">{handleMessage}</p>
                 )}
                 {handle && handle !== debouncedHandle && (
                   <p className="mt-1 text-sm text-gray-500">Checking availability...</p>
@@ -133,7 +204,7 @@ export default function SignUp() {
                   className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                   placeholder="Enter your group name"
                   value={groupName}
-                  onChange={(e) => setGroupName(e.target.value)}
+                  onChange={handleChange}
                 />
               </div>
             </div>
@@ -152,7 +223,7 @@ export default function SignUp() {
                   } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm`}
                   placeholder="Enter your password"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={handleChange}
                 />
                 {password && password.length < 8 && (
                   <p className="mt-1 text-sm text-red-600">Password must be at least 8 characters</p>
@@ -174,7 +245,7 @@ export default function SignUp() {
                   } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm`}
                   placeholder="Confirm your password"
                   value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  onChange={handleChange}
                 />
                 {confirmPassword && !validation.passwordsMatch && (
                   <p className="mt-1 text-sm text-red-600">Passwords do not match</p>
@@ -196,7 +267,7 @@ export default function SignUp() {
                   } rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm`}
                   placeholder="Enter your beta key"
                   value={betaKey}
-                  onChange={(e) => setBetaKey(e.target.value)}
+                  onChange={handleChange}
                 />
                 {betaKey === debouncedBetaKey && betaKey && !validation.betaKey && (
                   <p className="mt-1 text-sm text-red-600">Invalid beta key</p>
@@ -211,17 +282,27 @@ export default function SignUp() {
             </div>
           </div>
 
+          {error && (
+            <div className="rounded-md bg-red-50 p-4">
+              <div className="flex">
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-red-800">{error}</h3>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div>
             <button
               type="submit"
-              disabled={!validation.isFormValid}
+              disabled={isLoading || !validation.isFormValid}
               className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white ${
                 validation.isFormValid
                   ? 'bg-indigo-600 hover:bg-indigo-700 focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500'
                   : 'bg-gray-400 cursor-not-allowed'
               } focus:outline-none transition-colors duration-200`}
             >
-              Sign up
+              {isLoading ? 'Signing up...' : 'Sign up'}
             </button>
           </div>
         </form>
