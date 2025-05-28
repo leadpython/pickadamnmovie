@@ -312,7 +312,6 @@ export default function MainPage() {
               {upcomingMovieNights.map((movieNight) => {
                 const date = new Date(movieNight.date);
                 const selectedMovie = movieNight.imdb_id && movieNight.movies ? movieNight.movies[movieNight.imdb_id] : null;
-                const status = selectedMovie ? 'Movie Selected' : movieNight.movies ? 'Voting' : 'No Movies';
 
                 return (
                   <div

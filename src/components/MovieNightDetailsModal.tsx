@@ -40,6 +40,33 @@ interface MovieNight {
   movie_night_group_id: string;
 }
 
+interface OMDBMovie {
+  Title: string;
+  Year: string;
+  imdbID: string;
+  Type: string;
+  Poster: string;
+  Rated?: string;
+  Released?: string;
+  Runtime?: string;
+  Genre?: string;
+  Director?: string;
+  Writer?: string;
+  Actors?: string;
+  Plot?: string;
+  Language?: string;
+  Country?: string;
+  Awards?: string;
+  Ratings?: { Source: string; Value: string }[];
+  Metascore?: string;
+  imdbRating?: string;
+  imdbVotes?: string;
+  DVD?: string;
+  BoxOffice?: string;
+  Production?: string;
+  Website?: string;
+}
+
 interface MovieNightDetailsModalProps {
   movieNight: MovieNight;
   onClose: () => void;
@@ -83,12 +110,12 @@ export default function MovieNightDetailsModal({
     setIsSearchModalOpen(true);
   };
 
-  const handleSelectMovie = (movie: any) => {
+  const handleSelectMovie = (movie: OMDBMovie) => {
     setSelectedMovieId(movie.imdbID);
     setIsSearchModalOpen(false);
   };
 
-  const handleNominateMovie = async (movie: any) => {
+  const handleNominateMovie = async (movie: OMDBMovie) => {
     setIsNominating(true);
     try {
       const response = await fetch('/api/movie-night/nominate', {

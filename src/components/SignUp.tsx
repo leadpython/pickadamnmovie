@@ -28,11 +28,8 @@ export default function SignUp() {
     isFormValid: false
   });
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState<string | null>(null);
   const [handleMessage, setHandleMessage] = useState('');
-  const [betaKeyMessage, setBetaKeyMessage] = useState('');
-  const [isHandleValid, setIsHandleValid] = useState(false);
-  const [isBetaKeyValid, setIsBetaKeyValid] = useState(false);
 
   // Debounce handle and beta key values
   const debouncedHandle = useDebounce(handle, 1000);
@@ -75,16 +72,12 @@ export default function SignUp() {
       // Update handle message
       if (!isHandleFormatValid && debouncedHandle) {
         setHandleMessage('Handle can only contain lowercase letters, numbers, underscores, and dots');
-        setIsHandleValid(false);
       } else if (isHandleAvailable) {
         setHandleMessage('Handle is available!');
-        setIsHandleValid(true);
       } else if (debouncedHandle.length < 3) {
         setHandleMessage('Handle must be at least 3 characters');
-        setIsHandleValid(false);
       } else {
         setHandleMessage('Handle is already taken!');
-        setIsHandleValid(false);
       }
     };
 
