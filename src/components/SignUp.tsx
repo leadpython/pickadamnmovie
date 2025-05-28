@@ -30,6 +30,7 @@ export default function SignUp() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [handleMessage, setHandleMessage] = useState('');
+  const [isValidatingHandle, setIsValidatingHandle] = useState(false);
 
   // Debounce handle and beta key values
   const debouncedHandle = useDebounce(handle, 1000);
@@ -57,31 +58,77 @@ export default function SignUp() {
       // Validate handle format
       const handleRegex = /^[a-z0-9_.]+$/;
       const isHandleFormatValid = handleRegex.test(debouncedHandle);
-      const isHandleAvailable = isHandleFormatValid && debouncedHandle.length >= 3;
       
-      // Simulate beta key validation
-      const isBetaKeyValid = debouncedBetaKey.length >= 6;
-
-      setValidation(prev => ({
-        ...prev,
-        handle: isHandleAvailable,
-        betaKey: isBetaKeyValid,
-        isFormValid: isHandleAvailable && isBetaKeyValid && prev.passwordsMatch && groupName.length > 0
-      }));
-
-      // Update handle message
       if (!isHandleFormatValid && debouncedHandle) {
         setHandleMessage('Handle can only contain lowercase letters, numbers, underscores, and dots');
-      } else if (isHandleAvailable) {
-        setHandleMessage('Handle is available!');
-      } else if (debouncedHandle.length < 3) {
+        setValidation(prev => ({
+          ...prev,
+          handle: false,
+          isFormValid: false
+        }));
+        setIsValidatingHandle(false);
+        return;
+      }
+
+      if (debouncedHandle.length < 3) {
         setHandleMessage('Handle must be at least 3 characters');
-      } else {
-        setHandleMessage('Handle is already taken!');
+        setValidation(prev => ({
+          ...prev,
+          handle: false,
+          isFormValid: false
+        }));
+        setIsValidatingHandle(false);
+        return;
+      }
+
+      setIsValidatingHandle(true);
+      try {
+        // Check handle availability
+        const response = await fetch('/api/movie-night-group/check-handle', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ handle: debouncedHandle }),
+        });
+
+        const data = await response.json();
+        
+        // Update handle message based on availability
+        if (data.available === false) {
+          setHandleMessage('Handle is already taken!');
+          setValidation(prev => ({
+            ...prev,
+            handle: false,
+            isFormValid: false
+          }));
+        } else {
+          setHandleMessage('Handle is available!');
+          // Simulate beta key validation
+          const isBetaKeyValid = debouncedBetaKey.length >= 6;
+          setValidation(prev => ({
+            ...prev,
+            handle: true,
+            betaKey: isBetaKeyValid,
+            isFormValid: true && isBetaKeyValid && prev.passwordsMatch && groupName.length > 0
+          }));
+        }
+      } catch (error) {
+        console.error('Error checking handle availability:', error);
+        setHandleMessage('Error checking handle availability');
+        setValidation(prev => ({
+          ...prev,
+          handle: false,
+          isFormValid: false
+        }));
+      } finally {
+        setIsValidatingHandle(false);
       }
     };
 
-    validateDebouncedFields();
+    if (debouncedHandle) {
+      validateDebouncedFields();
+    }
   }, [debouncedHandle, debouncedBetaKey, groupName]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -90,6 +137,7 @@ export default function SignUp() {
       // Convert to lowercase and remove any invalid characters
       const sanitizedValue = value.toLowerCase().replace(/[^a-z0-9_.]/g, '');
       setHandle(sanitizedValue);
+      setHandleMessage(''); // Clear handle message when typing
     } else if (name === 'groupName') {
       setGroupName(value);
     } else if (name === 'password') {
@@ -173,13 +221,13 @@ export default function SignUp() {
                   value={handle}
                   onChange={handleChange}
                 />
-                {handle === debouncedHandle && handle && !validation.handle && (
+                {!isValidatingHandle && handle && !validation.handle && (
                   <p className="mt-1 text-sm text-red-600">{handleMessage}</p>
                 )}
-                {handle === debouncedHandle && handle && validation.handle && (
+                {!isValidatingHandle && handle && validation.handle && (
                   <p className="mt-1 text-sm text-green-600">{handleMessage}</p>
                 )}
-                {handle && handle !== debouncedHandle && (
+                {isValidatingHandle && (
                   <p className="mt-1 text-sm text-gray-500">Checking availability...</p>
                 )}
               </div>
