@@ -1,16 +1,22 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/config/supabase';
 
+type Props = {
+  params: {
+    handle: string;
+  };
+};
+
 export async function GET(
   request: Request,
-  context: { params: { handle: string } }
+  { params }: Props
 ) {
   try {
     // Fetch the movie night group by handle
     const { data: group, error: groupError } = await supabaseAdmin
       .from('movie_night_group')
       .select('*')
-      .eq('handle', context.params.handle)
+      .eq('handle', params.handle)
       .single();
 
     if (groupError || !group) {
