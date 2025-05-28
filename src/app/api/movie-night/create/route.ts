@@ -6,7 +6,7 @@ export async function POST(request: Request) {
     const { date, description, sessionId, secret } = await request.json();
 
     // Validate required fields
-    if (!date || !description || !sessionId) {
+    if (!date || !description || !sessionId || !secret) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
@@ -34,7 +34,7 @@ export async function POST(request: Request) {
         date,
         description,
         movie_night_group_id: session.movie_night_group_id,
-        secret: secret || null, // Set secret if provided, otherwise null
+        secret, // Secret is now required
       })
       .select()
       .single();

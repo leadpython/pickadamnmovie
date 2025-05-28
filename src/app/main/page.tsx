@@ -528,7 +528,7 @@ export default function MainPage() {
                   </div>
                   <div>
                     <label htmlFor="secret" className="block text-sm font-medium text-gray-700">
-                      Secret Password (Optional)
+                      Secret Password
                     </label>
                     <input
                       type="text"
@@ -537,9 +537,10 @@ export default function MainPage() {
                       onChange={(e) => setFormData(prev => ({ ...prev, secret: e.target.value }))}
                       placeholder="Enter a secret password for public nominations"
                       className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2"
+                      required
                     />
                     <p className="mt-1 text-sm text-gray-500">
-                      If set, users will need this password to nominate movies without being logged in.
+                      This password will be required for users to nominate movies without being logged in.
                     </p>
                   </div>
                 </div>
