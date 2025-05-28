@@ -1,39 +1,23 @@
 'use client';
 
 import { useState } from 'react';
-import MovieNightGroupForm from '@/components/MovieNightGroupForm';
-import MovieNightGroupDashboard from '@/components/MovieNightGroupDashboard';
-import { createMovieNightGroup } from '@/services/';
-import { useStore } from '@/store/store';
-import { MovieNightGroup } from '@/types';
+import SignIn from '@/components/SignIn';
+import SignUp from '@/components/SignUp';
 
 export default function Home() {
-  const [error, setError] = useState<string | undefined>();
-  const { movieNightGroup, setMovieNightGroup } = useStore();
-
-  const handleGroupSubmit = async (groupData: { name: string; description: string; password: string; handle: string; betakey: string }) => {
-    try {
-      setError(undefined);
-      const newGroup = await createMovieNightGroup(groupData);
-      setMovieNightGroup(newGroup);
-    } catch (error) {
-      console.error('Error creating group:', error);
-      setError(error instanceof Error ? error.message : 'Failed to create group');
-    }
-  };
+  const [isSignIn, setIsSignIn] = useState(true);
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center bg-gray-100">
-      {movieNightGroup ? (
-        <MovieNightGroupDashboard group={movieNightGroup as MovieNightGroup} />
-      ) : (
-        <MovieNightGroupForm onSubmit={handleGroupSubmit} />
-      )}
-      {error && (
-        <div className="mt-4 text-red-600 text-center">
-          {error}
-        </div>
-      )}
+    <main className="min-h-screen bg-gray-50">
+      {isSignIn ? <SignIn /> : <SignUp />}
+      <div className="fixed bottom-4 left-0 right-0 flex justify-center">
+        <button
+          onClick={() => setIsSignIn(!isSignIn)}
+          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200"
+        >
+          {isSignIn ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
+        </button>
+      </div>
     </main>
   );
 }
