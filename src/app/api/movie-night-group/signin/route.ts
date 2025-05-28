@@ -90,8 +90,8 @@ export async function POST(request: Request) {
       sessionId = newSession.id;
     }
 
-    // Create response with cookie
-    const response = NextResponse.json({
+    // Return session and group info
+    return NextResponse.json({
       sessionId,
       group: {
         id: group.id,
@@ -99,16 +99,6 @@ export async function POST(request: Request) {
         name: group.name,
       },
     });
-
-    // Set session cookie
-    response.cookies.set('session_id', sessionId, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      expires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 1 day
-    });
-
-    return response;
   } catch (error) {
     console.error('Signin error:', error);
     return NextResponse.json(

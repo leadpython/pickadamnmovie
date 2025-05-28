@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/config/supabase';
-import { cookies } from 'next/headers';
 import bcrypt from 'bcrypt';
 
 export async function POST(request: Request) {
@@ -85,8 +84,8 @@ export async function POST(request: Request) {
       );
     }
 
-    // Create response with cookie
-    const response = NextResponse.json({
+    // Return session and group info
+    return NextResponse.json({
       sessionId: session.id,
       group: {
         id: group.id,
@@ -94,16 +93,6 @@ export async function POST(request: Request) {
         name: group.name,
       },
     });
-
-    // Set session cookie
-    response.cookies.set('session_id', session.id, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      expires: expiresAt,
-    });
-
-    return response;
   } catch (error) {
     console.error('Signup error:', error);
     return NextResponse.json(
