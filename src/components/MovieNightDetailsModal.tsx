@@ -59,6 +59,7 @@ export default function MovieNightDetailsModal({
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [selectedMovieId, setSelectedMovieId] = useState<string | null>(null);
   const [isNominating, setIsNominating] = useState(false);
+  const [isPickingRandom, setIsPickingRandom] = useState(false);
   const [localMovies, setLocalMovies] = useState<Record<string, Movie> | null>(movieNight.movies);
   const [isViewingDetails, setIsViewingDetails] = useState(false);
   const date = new Date(movieNight.date);
@@ -126,6 +127,47 @@ export default function MovieNightDetailsModal({
   const handleViewMovieDetails = (movie: Movie) => {
     setSelectedMovieId(movie.imdb_id);
     setIsViewingDetails(true);
+  };
+
+  const handlePickRandomMovie = async () => {
+    if (!movieNight.movies || Object.keys(movieNight.movies).length === 0) return;
+    
+    setIsPickingRandom(true);
+    try {
+      const response = await fetch('/api/movie-night/pick-random', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          movieNightId: movieNight.id,
+          sessionId: useStore.getState().sessionId,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to pick random movie');
+      }
+
+      const { selectedMovie, imdb_id } = await response.json();
+      
+      // Update local state with the selected movie
+      setLocalMovies(prev => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          [imdb_id]: selectedMovie
+        };
+      });
+      
+      // Call the parent component's handler
+      onPickRandomMovie();
+    } catch (error) {
+      console.error('Error picking random movie:', error);
+    } finally {
+      setIsPickingRandom(false);
+    }
   };
 
   return (
@@ -219,7 +261,9 @@ export default function MovieNightDetailsModal({
                       <button
                         key={movie.imdb_id}
                         onClick={() => handleViewMovieDetails(movie)}
-                        className="group bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 text-left"
+                        className={`group bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 text-left ${
+                          movie.imdb_id === movieNight.imdb_id ? 'ring-2 ring-indigo-500' : ''
+                        }`}
                       >
                         <div className="aspect-[2/3] relative rounded-t-lg overflow-hidden">
                           <Image
@@ -263,16 +307,26 @@ export default function MovieNightDetailsModal({
               </button>
               <button
                 type="button"
-                onClick={onPickRandomMovie}
-                disabled={!movieNight.movies || Object.keys(movieNight.movies).length === 0}
+                onClick={handlePickRandomMovie}
+                disabled={isPickingRandom || !movieNight.movies || Object.keys(movieNight.movies).length === 0}
                 className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Pick Random Movie
+                {isPickingRandom ? 'Picking...' : 'Pick Random Movie'}
               </button>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Loading Overlay */}
+      {isPickingRandom && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
+          <div className="bg-white p-8 rounded-lg shadow-xl text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+            <p className="text-lg font-medium text-gray-900">Picking a random movie...</p>
+          </div>
+        </div>
+      )}
 
       {/* Search Modal */}
       {isSearchModalOpen && (

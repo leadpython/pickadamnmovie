@@ -42,7 +42,7 @@ export async function POST(request: Request) {
       );
     }
 
-    if (!movieNight.movies || movieNight.movies.length === 0) {
+    if (!movieNight.movies || Object.keys(movieNight.movies).length === 0) {
       return NextResponse.json(
         { error: 'No movies to pick from' },
         { status: 400 }
@@ -50,13 +50,15 @@ export async function POST(request: Request) {
     }
 
     // Pick a random movie
-    const randomIndex = Math.floor(Math.random() * movieNight.movies.length);
-    const selectedMovie = movieNight.movies[randomIndex];
+    const movieIds = Object.keys(movieNight.movies);
+    const randomIndex = Math.floor(Math.random() * movieIds.length);
+    const selectedMovieId = movieIds[randomIndex];
+    const selectedMovie = movieNight.movies[selectedMovieId];
 
     // Update movie night with selected movie
     const { error: updateError } = await supabaseAdmin
       .from('movie_night')
-      .update({ imdb_id: selectedMovie.imdb_id })
+      .update({ imdb_id: selectedMovieId })
       .eq('id', movieNightId)
       .eq('movie_night_group_id', session.movie_night_group_id);
 
@@ -68,7 +70,11 @@ export async function POST(request: Request) {
       );
     }
 
-    return NextResponse.json({ selectedMovie });
+    return NextResponse.json({ 
+      success: true,
+      selectedMovie,
+      imdb_id: selectedMovieId
+    });
   } catch (error) {
     console.error('Pick random movie error:', error);
     return NextResponse.json(

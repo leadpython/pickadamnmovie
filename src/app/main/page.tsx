@@ -6,11 +6,38 @@ import { useStore } from '@/store/store';
 import Image from 'next/image';
 import MovieNightDetailsModal from '@/components/MovieNightDetailsModal';
 
+interface Movie {
+  imdb_id: string;
+  title: string;
+  year: number;
+  runtime: number;
+  poster_url: string;
+  rated?: string;
+  released?: string;
+  genre?: string;
+  director?: string;
+  writer?: string;
+  actors?: string;
+  plot?: string;
+  language?: string;
+  country?: string;
+  awards?: string;
+  ratings?: { Source: string; Value: string }[];
+  metascore?: string;
+  imdb_rating?: string;
+  imdb_votes?: string;
+  type?: string;
+  dvd?: string;
+  box_office?: string;
+  production?: string;
+  website?: string;
+}
+
 interface MovieNight {
   id: string;
   date: string;
   imdb_id: string | null;
-  movies: any[] | null;
+  movies: Record<string, Movie> | null;
   description: string;
   movie_night_group_id: string;
 }
@@ -284,7 +311,7 @@ export default function MainPage() {
             <div className="mt-4 space-y-2">
               {upcomingMovieNights.map((movieNight) => {
                 const date = new Date(movieNight.date);
-                const selectedMovie = movieNight.imdb_id ? movieNight.movies?.find(m => m.imdb_id === movieNight.imdb_id) : null;
+                const selectedMovie = movieNight.imdb_id && movieNight.movies ? movieNight.movies[movieNight.imdb_id] : null;
                 const status = selectedMovie ? 'Movie Selected' : movieNight.movies ? 'Voting' : 'No Movies';
 
                 return (
@@ -295,18 +322,27 @@ export default function MainPage() {
                   >
                     <div className="p-3">
                       <div className="flex items-center space-x-3">
-                        {/* Movie Poster Placeholder */}
-                        <div className="flex-shrink-0 w-16 h-24 relative bg-gray-100 rounded overflow-hidden border border-gray-200">
-                          <div className="absolute inset-0 flex flex-col items-center justify-center p-1">
-                            <div className="w-6 h-6 mb-1">
-                              <svg className="w-full h-full text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
-                              </svg>
+                        {/* Movie Poster */}
+                        <div className="flex-shrink-0 w-16 h-24 relative rounded overflow-hidden border border-gray-200">
+                          {selectedMovie ? (
+                            <Image
+                              src={selectedMovie.poster_url}
+                              alt={selectedMovie.title}
+                              fill
+                              className="object-cover"
+                            />
+                          ) : (
+                            <div className="absolute inset-0 flex flex-col items-center justify-center p-1 bg-gray-100">
+                              <div className="w-6 h-6 mb-1">
+                                <svg className="w-full h-full text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
+                                </svg>
+                              </div>
+                              <span className="text-[10px] text-gray-500 text-center">
+                                No Movie
+                              </span>
                             </div>
-                            <span className="text-[10px] text-gray-500 text-center">
-                              {selectedMovie ? 'Selected' : 'No Movie'}
-                            </span>
-                          </div>
+                          )}
                         </div>
 
                         {/* Movie Night Details */}
@@ -370,7 +406,7 @@ export default function MainPage() {
               <div className="mt-3 space-y-1">
                 {pastMovieNights.map((movieNight) => {
                   const date = new Date(movieNight.date);
-                  const selectedMovie = movieNight.imdb_id ? movieNight.movies?.find(m => m.imdb_id === movieNight.imdb_id) : null;
+                  const selectedMovie = movieNight.imdb_id && movieNight.movies ? movieNight.movies[movieNight.imdb_id] : null;
 
                   return (
                     <div
@@ -380,13 +416,22 @@ export default function MainPage() {
                     >
                       <div className="px-3 py-2">
                         <div className="flex items-center space-x-2">
-                          {/* Tiny Movie Poster Placeholder */}
-                          <div className="flex-shrink-0 w-8 h-12 relative bg-gray-100 rounded overflow-hidden border border-gray-200">
-                            <div className="absolute inset-0 flex items-center justify-center">
-                              <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
-                              </svg>
-                            </div>
+                          {/* Tiny Movie Poster */}
+                          <div className="flex-shrink-0 w-8 h-12 relative rounded overflow-hidden border border-gray-200">
+                            {selectedMovie ? (
+                              <Image
+                                src={selectedMovie.poster_url}
+                                alt={selectedMovie.title}
+                                fill
+                                className="object-cover"
+                              />
+                            ) : (
+                              <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
+                                <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
+                                </svg>
+                              </div>
+                            )}
                           </div>
 
                           {/* Movie Night Details */}
