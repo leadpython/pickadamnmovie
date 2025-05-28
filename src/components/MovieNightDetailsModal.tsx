@@ -73,6 +73,8 @@ interface MovieNightDetailsModalProps {
   onNominateMovie: (movie: Movie, movies: Record<string, Movie>) => void;
   onCancelMovieNight: () => void;
   onPickRandomMovie: () => void;
+  hideActions?: boolean;
+  showNominateButton?: boolean;
 }
 
 export default function MovieNightDetailsModal({
@@ -81,6 +83,8 @@ export default function MovieNightDetailsModal({
   onNominateMovie,
   onCancelMovieNight,
   onPickRandomMovie,
+  hideActions = false,
+  showNominateButton = false,
 }: MovieNightDetailsModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
@@ -89,6 +93,9 @@ export default function MovieNightDetailsModal({
   const [isPickingRandom, setIsPickingRandom] = useState(false);
   const [localMovies, setLocalMovies] = useState<Record<string, Movie> | null>(movieNight.movies);
   const [isViewingDetails, setIsViewingDetails] = useState(false);
+  const [secret, setSecret] = useState('');
+  const [showSecretInput, setShowSecretInput] = useState(false);
+  const { sessionId } = useStore();
   const date = new Date(movieNight.date);
   const selectedMovie = movieNight.imdb_id ? localMovies?.[movieNight.imdb_id] : null;
   const nominatedMovies = localMovies ? Object.values(localMovies) : [];
@@ -116,17 +123,41 @@ export default function MovieNightDetailsModal({
   };
 
   const handleNominateMovie = async (movie: OMDBMovie) => {
+    if (!sessionId) {
+      // For public users, show secret input first
+      setShowSecretInput(true);
+      return;
+    }
+
+    // For authenticated users, proceed with nomination
+    await submitNomination(movie);
+  };
+
+  const handleSecretSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!secret.trim() || !selectedMovieId) return;
+
+    // Get the movie details from the modal
+    const movieDetails = await fetch(`/api/movie/${selectedMovieId}`).then(res => res.json());
+    await submitNomination(movieDetails);
+  };
+
+  const submitNomination = async (movie: OMDBMovie) => {
     setIsNominating(true);
     try {
-      const response = await fetch('/api/movie-night/nominate', {
+      // Determine which endpoint to use based on session type
+      const endpoint = sessionId ? '/api/movie-night/nominate' : '/api/movie-night/nominate-public';
+
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           movieNightId: movieNight.id,
-          sessionId: useStore.getState().sessionId,
+          sessionId: sessionId,
           movie,
+          secret: !sessionId ? secret : undefined,
         }),
       });
 
@@ -143,6 +174,8 @@ export default function MovieNightDetailsModal({
       // Update the movie night in the parent component
       onNominateMovie(nominatedMovie, updatedMovies);
       setSelectedMovieId(null);
+      setSecret(''); // Clear the secret after successful nomination
+      setShowSecretInput(false); // Close the secret input modal
     } catch (error) {
       console.error('Error nominating movie:', error);
       // You might want to show an error message to the user here
@@ -274,13 +307,6 @@ export default function MovieNightDetailsModal({
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <h4 className="text-sm font-medium text-gray-900">Nominated Movies</h4>
-                  <button
-                    type="button"
-                    onClick={handleSearchMovie}
-                    className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-indigo-700 bg-indigo-100 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                  >
-                    Nominate Movie
-                  </button>
                 </div>
                 {nominatedMovies.length > 0 ? (
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
@@ -324,22 +350,35 @@ export default function MovieNightDetailsModal({
           {/* Footer */}
           <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
             <div className="flex justify-between">
-              <button
-                type="button"
-                onClick={handleCancelMovieNight}
-                disabled={isSubmitting}
-                className="inline-flex items-center px-4 py-2 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isSubmitting ? 'Canceling...' : 'Cancel Movie Night'}
-              </button>
-              <button
-                type="button"
-                onClick={handlePickRandomMovie}
-                disabled={isPickingRandom || !localMovies || Object.keys(localMovies).length === 0}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isPickingRandom ? 'Picking...' : 'Pick Random Movie'}
-              </button>
+              {!hideActions && (
+                <>
+                  <button
+                    type="button"
+                    onClick={handleCancelMovieNight}
+                    disabled={isSubmitting}
+                    className="inline-flex items-center px-4 py-2 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isSubmitting ? 'Canceling...' : 'Cancel Movie Night'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handlePickRandomMovie}
+                    disabled={isPickingRandom || !localMovies || Object.keys(localMovies).length === 0}
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isPickingRandom ? 'Picking...' : 'Pick Random Movie'}
+                  </button>
+                </>
+              )}
+              {showNominateButton && (
+                <button
+                  type="button"
+                  onClick={handleSearchMovie}
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  Nominate Movie
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -374,6 +413,50 @@ export default function MovieNightDetailsModal({
           onNominate={isViewingDetails ? undefined : handleNominateMovie}
           isNominating={isNominating}
         />
+      )}
+
+      {/* Secret Input Modal */}
+      {showSecretInput && (
+        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Enter Movie Night Secret</h3>
+            <form onSubmit={handleSecretSubmit}>
+              <div className="mb-4">
+                <label htmlFor="secret" className="block text-sm font-medium text-gray-700">
+                  Secret Code
+                </label>
+                <input
+                  type="text"
+                  id="secret"
+                  value={secret}
+                  onChange={(e) => setSecret(e.target.value)}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                  placeholder="Enter the movie night secret"
+                  required
+                />
+              </div>
+              <div className="flex justify-end space-x-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowSecretInput(false);
+                    setSelectedMovieId(null);
+                  }}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isNominating}
+                  className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isNominating ? 'Nominating...' : 'Nominate Movie'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </>
   );

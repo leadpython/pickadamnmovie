@@ -12,7 +12,9 @@ create table public.movie_night (
   description text not null,
   id uuid not null default gen_random_uuid (),
   movie_night_group_id uuid not null,
-  constraint movie_night_pkey primary key (id)
+  secret text null,
+  constraint movie_night_pkey primary key (id),
+  constraint movie_night_movie_night_group_id_fkey foreign KEY (movie_night_group_id) references movie_night_group (id)
 ) TABLESPACE pg_default;
 
 create table public.movie_night_group (
