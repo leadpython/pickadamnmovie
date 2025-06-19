@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Image from 'next/image';
-import { useStore } from '@/store/store';
 
 interface Movie {
   imdb_id: string;
@@ -43,12 +42,9 @@ interface MovieNight {
 export default function ProfileMovieNightDetailsPage() {
   const router = useRouter();
   const params = useParams();
-  const { sessionId } = useStore();
   const [movieNight, setMovieNight] = useState<MovieNight | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isPickingRandom, setIsPickingRandom] = useState(false);
   const [localMovies, setLocalMovies] = useState<Record<string, Movie> | null>(null);
 
   const movieNightId = params.id as string;
@@ -90,73 +86,6 @@ export default function ProfileMovieNightDetailsPage() {
 
     fetchMovieNight();
   }, [movieNightId, router, handle]);
-
-  const handleCancelMovieNight = async () => {
-    if (!movieNight || !confirm('Are you sure you want to cancel this movie night?')) return;
-    setIsSubmitting(true);
-    try {
-      const response = await fetch('/api/movie-night/cancel', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          movieNightId: movieNight.id,
-          sessionId,
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to cancel movie night');
-      }
-
-      router.push(`/profile/${handle}`);
-    } catch (error) {
-      console.error('Error canceling movie night:', error);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handlePickRandomMovie = async () => {
-    if (!localMovies || Object.keys(localMovies).length === 0 || !movieNight) return;
-    
-    setIsPickingRandom(true);
-    try {
-      const response = await fetch('/api/movie-night/pick-random', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          movieNightId: movieNight.id,
-          sessionId: sessionId,
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to pick random movie');
-      }
-
-      const { selectedMovie, imdb_id } = await response.json();
-      
-      setLocalMovies(prev => {
-        if (!prev) return null;
-        return {
-          ...prev,
-          [imdb_id]: selectedMovie
-        };
-      });
-      
-      setMovieNight(prev => prev ? { ...prev, imdb_id } : null);
-    } catch (error) {
-      console.error('Error picking random movie:', error);
-    } finally {
-      setIsPickingRandom(false);
-    }
-  };
 
   if (isLoading) {
     return (
@@ -247,38 +176,6 @@ export default function ProfileMovieNightDetailsPage() {
           </div>
         </div>
       </div>
-
-      {/* Footer */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4">
-        <div className="max-w-7xl mx-auto flex justify-between">
-          <button
-            type="button"
-            onClick={handleCancelMovieNight}
-            disabled={isSubmitting}
-            className="inline-flex items-center px-4 py-2 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isSubmitting ? 'Canceling...' : 'Cancel Movie Night'}
-          </button>
-          <button
-            type="button"
-            onClick={handlePickRandomMovie}
-            disabled={isPickingRandom || !localMovies || Object.keys(localMovies).length === 0}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isPickingRandom ? 'Picking...' : 'Pick Random Movie'}
-          </button>
-        </div>
-      </div>
-
-      {/* Loading Overlay */}
-      {isPickingRandom && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
-          <div className="bg-white p-8 rounded-lg shadow-xl text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-            <p className="text-lg font-medium text-gray-900">Picking a random movie...</p>
-          </div>
-        </div>
-      )}
     </div>
   );
 } 

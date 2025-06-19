@@ -30,7 +30,7 @@ export async function POST(request: Request) {
     // Get movie night to verify it exists
     const { data: movieNight, error: fetchError } = await supabaseAdmin
       .from('movie_night')
-      .select('id')
+      .select('id, imdb_id')
       .eq('id', movieNightId)
       .eq('movie_night_group_id', session.movie_night_group_id)
       .single();
@@ -42,54 +42,35 @@ export async function POST(request: Request) {
       );
     }
 
-    // Get all movies from the roster
-    const { data: rosterMovies, error: rosterError } = await supabaseAdmin
-      .from('movie_roster')
-      .select('imdb_id, meta_data')
-      .order('created_at', { ascending: true });
-
-    if (rosterError) {
-      console.error('Error fetching roster movies:', rosterError);
+    // Check if there's a movie to clear
+    if (!movieNight.imdb_id) {
       return NextResponse.json(
-        { error: 'Failed to fetch roster movies' },
-        { status: 500 }
-      );
-    }
-
-    if (!rosterMovies || rosterMovies.length === 0) {
-      return NextResponse.json(
-        { error: 'No movies in roster to pick from' },
+        { error: 'No movie selected to clear' },
         { status: 400 }
       );
     }
 
-    // Pick a random movie from the roster
-    const randomIndex = Math.floor(Math.random() * rosterMovies.length);
-    const selectedRosterMovie = rosterMovies[randomIndex];
-    const selectedMovie = selectedRosterMovie.meta_data;
-
-    // Update movie night with selected movie
+    // Clear the selected movie
     const { error: updateError } = await supabaseAdmin
       .from('movie_night')
-      .update({ imdb_id: selectedRosterMovie.imdb_id })
+      .update({ imdb_id: null })
       .eq('id', movieNightId)
       .eq('movie_night_group_id', session.movie_night_group_id);
 
     if (updateError) {
-      console.error('Error updating movie night:', updateError);
+      console.error('Error clearing movie from movie night:', updateError);
       return NextResponse.json(
-        { error: 'Failed to update movie night' },
+        { error: 'Failed to clear movie' },
         { status: 500 }
       );
     }
 
     return NextResponse.json({ 
       success: true,
-      selectedMovie,
-      imdb_id: selectedRosterMovie.imdb_id
+      message: 'Movie cleared successfully'
     });
   } catch (error) {
-    console.error('Pick random movie error:', error);
+    console.error('Clear movie error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

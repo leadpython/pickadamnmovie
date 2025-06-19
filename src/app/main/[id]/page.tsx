@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Image from 'next/image';
 import { useStore } from '@/store/store';
@@ -49,9 +49,34 @@ export default function MovieNightDetailsPage() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPickingRandom, setIsPickingRandom] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
   const [localMovies, setLocalMovies] = useState<Record<string, Movie> | null>(null);
+  const [rosterCount, setRosterCount] = useState(0);
 
   const movieNightId = params.id as string;
+
+  const fetchRosterCount = useCallback(async () => {
+    if (!sessionId) return;
+    
+    try {
+      const response = await fetch('/api/movie-roster/list', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ sessionId }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch roster');
+      }
+
+      const data = await response.json();
+      setRosterCount(data.movies?.length || 0);
+    } catch (error) {
+      console.error('Error fetching roster count:', error);
+    }
+  }, [sessionId]);
 
   useEffect(() => {
     const fetchMovieNight = async () => {
@@ -80,6 +105,9 @@ export default function MovieNightDetailsPage() {
         const data = await response.json();
         setMovieNight(data);
         setLocalMovies(data.movies);
+        
+        // Fetch roster count
+        await fetchRosterCount();
       } catch (error) {
         console.error('Error fetching movie night:', error);
         setError('Failed to load movie night');
@@ -89,7 +117,7 @@ export default function MovieNightDetailsPage() {
     };
 
     fetchMovieNight();
-  }, [movieNightId, sessionId, router]);
+  }, [movieNightId, sessionId, router, fetchRosterCount]);
 
   const handleCancelMovieNight = async () => {
     if (!movieNight || !confirm('Are you sure you want to cancel this movie night?')) return;
@@ -120,7 +148,7 @@ export default function MovieNightDetailsPage() {
   };
 
   const handlePickRandomMovie = async () => {
-    if (!localMovies || Object.keys(localMovies).length === 0 || !movieNight) return;
+    if (rosterCount === 0 || !movieNight) return;
     
     setIsPickingRandom(true);
     try {
@@ -142,8 +170,9 @@ export default function MovieNightDetailsPage() {
 
       const { selectedMovie, imdb_id } = await response.json();
       
+      // Update local movies with the selected movie
       setLocalMovies(prev => {
-        if (!prev) return null;
+        if (!prev) return { [imdb_id]: selectedMovie };
         return {
           ...prev,
           [imdb_id]: selectedMovie
@@ -155,6 +184,36 @@ export default function MovieNightDetailsPage() {
       console.error('Error picking random movie:', error);
     } finally {
       setIsPickingRandom(false);
+    }
+  };
+
+  const handleClearMovie = async () => {
+    if (!movieNight || !movieNight.imdb_id) return;
+    
+    setIsClearing(true);
+    try {
+      const response = await fetch('/api/movie-night/clear-movie', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          movieNightId: movieNight.id,
+          sessionId: sessionId,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to clear movie');
+      }
+
+      // Update local state to remove the selected movie
+      setMovieNight(prev => prev ? { ...prev, imdb_id: null } : null);
+    } catch (error) {
+      console.error('Error clearing movie:', error);
+    } finally {
+      setIsClearing(false);
     }
   };
 
@@ -243,6 +302,46 @@ export default function MovieNightDetailsPage() {
                   <p className="text-sm text-gray-500">No movie selected yet</p>
                 </div>
               )}
+              
+              {/* Pick Random Movie Button */}
+              <div className="mt-4 flex space-x-3">
+                <button
+                  type="button"
+                  onClick={handlePickRandomMovie}
+                  disabled={isPickingRandom || isClearing || rosterCount === 0}
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isPickingRandom ? (
+                    <>
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Picking...
+                    </>
+                  ) : (
+                    'Pick Random Movie From Roster'
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleClearMovie}
+                  disabled={!selectedMovie || isPickingRandom || isClearing}
+                  className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isClearing ? (
+                    <>
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-gray-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Clearing...
+                    </>
+                  ) : (
+                    'Clear'
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -259,26 +358,8 @@ export default function MovieNightDetailsPage() {
           >
             {isSubmitting ? 'Canceling...' : 'Cancel Movie Night'}
           </button>
-          <button
-            type="button"
-            onClick={handlePickRandomMovie}
-            disabled={isPickingRandom || !localMovies || Object.keys(localMovies).length === 0}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isPickingRandom ? 'Picking...' : 'Pick Random Movie'}
-          </button>
         </div>
       </div>
-
-      {/* Loading Overlay */}
-      {isPickingRandom && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
-          <div className="bg-white p-8 rounded-lg shadow-xl text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-            <p className="text-lg font-medium text-gray-900">Picking a random movie...</p>
-          </div>
-        </div>
-      )}
     </div>
   );
 } 
