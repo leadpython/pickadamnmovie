@@ -5,6 +5,7 @@ import { useState } from 'react';
 interface FormData {
   date: string;
   time: string;
+  timezone: string;
 }
 
 interface NewMovieNightModalProps {
@@ -14,6 +15,21 @@ interface NewMovieNightModalProps {
   isSubmitting: boolean;
   error: string | null;
 }
+
+// Common timezones - you can expand this list as needed
+const TIMEZONES = [
+  { value: 'America/New_York', label: 'Eastern Time (ET)' },
+  { value: 'America/Chicago', label: 'Central Time (CT)' },
+  { value: 'America/Denver', label: 'Mountain Time (MT)' },
+  { value: 'America/Los_Angeles', label: 'Pacific Time (PT)' },
+  { value: 'America/Anchorage', label: 'Alaska Time (AKT)' },
+  { value: 'Pacific/Honolulu', label: 'Hawaii Time (HT)' },
+  { value: 'Europe/London', label: 'Greenwich Mean Time (GMT)' },
+  { value: 'Europe/Paris', label: 'Central European Time (CET)' },
+  { value: 'Asia/Tokyo', label: 'Japan Standard Time (JST)' },
+  { value: 'Australia/Sydney', label: 'Australian Eastern Time (AET)' },
+  { value: 'UTC', label: 'Coordinated Universal Time (UTC)' },
+];
 
 export default function NewMovieNightModal({
   isOpen,
@@ -25,13 +41,18 @@ export default function NewMovieNightModal({
   const [formData, setFormData] = useState<FormData>({
     date: '',
     time: '',
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone, // Default to user's timezone
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await onSubmit(formData);
     // Reset form on successful submission
-    setFormData({ date: '', time: '' });
+    setFormData({ 
+      date: '', 
+      time: '', 
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone 
+    });
   };
 
   if (!isOpen) return null;
@@ -76,6 +97,24 @@ export default function NewMovieNightModal({
                   required
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2"
                 />
+              </div>
+              <div>
+                <label htmlFor="timezone" className="block text-sm font-medium text-gray-700">
+                  Timezone
+                </label>
+                <select
+                  id="timezone"
+                  value={formData.timezone}
+                  onChange={(e) => setFormData(prev => ({ ...prev, timezone: e.target.value }))}
+                  required
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2"
+                >
+                  {TIMEZONES.map((tz) => (
+                    <option key={tz.value} value={tz.value}>
+                      {tz.label}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
             <div className="mt-5 sm:mt-6 sm:grid sm:grid-flow-row-dense sm:grid-cols-2 sm:gap-3">

@@ -38,6 +38,7 @@ interface MovieNight {
   imdb_id: string | null;
   movies: Record<string, Movie> | null;
   movie_night_group_id: string;
+  timezone: string;
 }
 
 export default function MovieNightDetailsPage() {
@@ -217,6 +218,148 @@ export default function MovieNightDetailsPage() {
     }
   };
 
+  // Utility function to format date with timezone
+  const formatDateWithTimezone = (dateString: string, timezone: string) => {
+    try {
+      // Parse the date string manually to avoid timezone interpretation
+      const [datePart, timePart] = dateString.split('T');
+      const [_year, _month, day] = datePart.split('-').map(Number);
+      const [hour, minute] = timePart.split(':').map(Number);
+      
+      // Get timezone abbreviation
+      const timezoneAbbr = getTimezoneAbbreviation(timezone);
+      
+      // Format the time manually to avoid timezone conversion
+      const formattedTime = formatTime(hour, minute);
+      const formattedFullDate = formatFullDate(_year, _month, day);
+      
+      // Convert to user's local timezone
+      const userLocalTime = convertToUserLocalTime(dateString, timezone);
+      
+      return {
+        fullDate: formattedFullDate,
+        time: formattedTime + ` ${timezoneAbbr} (${userLocalTime})`
+      };
+    } catch (error) {
+      // Fallback to UTC if timezone is invalid
+      console.error('Error formatting date with timezone:', error);
+      const date = new Date(dateString);
+      const userLocalTime = date.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        timeZoneName: 'short'
+      });
+      return {
+        fullDate: date.toLocaleDateString('en-US', {
+          weekday: 'long',
+          month: 'long',
+          day: 'numeric',
+        }),
+        time: date.toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+        }) + ' UTC (' + userLocalTime + ')'
+      };
+    }
+  };
+
+  // Helper function to format time without timezone conversion
+  const formatTime = (hour: number, minute: number): string => {
+    const period = hour >= 12 ? 'PM' : 'AM';
+    const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+    const displayMinute = minute.toString().padStart(2, '0');
+    return `${displayHour}:${displayMinute} ${period}`;
+  };
+
+  // Helper function to format full date
+  const formatFullDate = (year: number, month: number, day: number): string => {
+    const date = new Date(year, month - 1, day);
+    return date.toLocaleDateString('en-US', {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+    });
+  };
+
+  // Helper function to get timezone abbreviation
+  const getTimezoneAbbreviation = (timezone: string): string => {
+    const abbreviations: Record<string, string> = {
+      'America/New_York': 'ET',
+      'America/Chicago': 'CT',
+      'America/Denver': 'MT',
+      'America/Los_Angeles': 'PT',
+      'America/Anchorage': 'AKT',
+      'Pacific/Honolulu': 'HT',
+      'Europe/London': 'GMT',
+      'Europe/Paris': 'CET',
+      'Asia/Tokyo': 'JST',
+      'Australia/Sydney': 'AET',
+      'UTC': 'UTC',
+    };
+    return abbreviations[timezone] || timezone;
+  };
+
+  // Helper function to convert time to user's local timezone
+  const convertToUserLocalTime = (dateString: string, originalTimezone: string): string => {
+    try {
+      // Parse the date string manually to avoid timezone interpretation
+      const [, timePart] = dateString.split('T');
+      const [hour, minute] = timePart.split(':').map(Number);
+      
+      // Get the timezone offset for the original timezone (in hours)
+      const originalOffsetHours = getTimezoneOffsetHours(originalTimezone);
+      
+      // Get the user's local timezone offset (in hours)
+      const localOffsetHours = new Date().getTimezoneOffset() / -60;
+      
+      // Calculate the time difference (how many hours to add to original time)
+      const timeDifference = localOffsetHours - originalOffsetHours;
+      
+      // Calculate the new hour
+      let newHour = hour + timeDifference;
+      
+      // Handle day rollover
+      if (newHour >= 24) {
+        newHour -= 24;
+      } else if (newHour < 0) {
+        newHour += 24;
+      }
+      
+      // Format the time
+      const period = newHour >= 12 ? 'PM' : 'AM';
+      const displayHour = newHour === 0 ? 12 : newHour > 12 ? newHour - 12 : newHour;
+      const displayMinute = minute.toString().padStart(2, '0');
+      
+      // Get user's timezone abbreviation
+      const userTimezoneAbbr = new Date().toLocaleTimeString('en-US', {
+        timeZoneName: 'short'
+      }).split(' ').pop() || 'Local';
+      
+      return `${displayHour}:${displayMinute} ${period} ${userTimezoneAbbr}`;
+    } catch (error) {
+      console.error('Error converting timezone:', error);
+      return 'Invalid time';
+    }
+  };
+
+  // Helper function to get timezone offset in hours
+  const getTimezoneOffsetHours = (timezone: string): number => {
+    const offsets: Record<string, number> = {
+      'America/New_York': -4, // EDT: -4 hours from UTC
+      'America/Chicago': -5,  // CDT: -5 hours from UTC
+      'America/Denver': -6,   // MDT: -6 hours from UTC
+      'America/Los_Angeles': -7, // PDT: -7 hours from UTC
+      'America/Anchorage': -8, // AKDT: -8 hours from UTC
+      'Pacific/Honolulu': -10, // HST: -10 hours from UTC
+      'Europe/London': 1,     // BST: +1 hour from UTC
+      'Europe/Paris': 2,      // CEST: +2 hours from UTC
+      'Asia/Tokyo': 9,        // JST: +9 hours from UTC
+      'Australia/Sydney': 11, // AEDT: +11 hours from UTC
+      'UTC': 0,
+    };
+    return offsets[timezone] || 0;
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -233,7 +376,6 @@ export default function MovieNightDetailsPage() {
     );
   }
 
-  const date = new Date(movieNight.date);
   const selectedMovie = movieNight.imdb_id ? localMovies?.[movieNight.imdb_id] : null;
 
   return (
@@ -253,17 +395,10 @@ export default function MovieNightDetailsPage() {
               </button>
               <div>
                 <h1 className="text-lg font-medium text-gray-900">
-                  {date.toLocaleDateString('en-US', {
-                    weekday: 'long',
-                    month: 'long',
-                    day: 'numeric',
-                  })}
+                  {formatDateWithTimezone(movieNight.date, movieNight.timezone || 'UTC').fullDate}
                 </h1>
                 <p className="text-sm text-gray-500">
-                  {date.toLocaleTimeString('en-US', {
-                    hour: 'numeric',
-                    minute: '2-digit',
-                  })}
+                  {formatDateWithTimezone(movieNight.date, movieNight.timezone || 'UTC').time}
                 </p>
               </div>
             </div>

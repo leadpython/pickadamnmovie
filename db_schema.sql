@@ -11,6 +11,7 @@ create table public.movie_night (
   id uuid not null default gen_random_uuid (),
   movie_night_group_id uuid not null,
   meta_data jsonb null,
+  timezone text null,
   constraint movie_night_pkey primary key (id),
   constraint movie_night_movie_night_group_id_fkey foreign KEY (movie_night_group_id) references movie_night_group (id)
 ) TABLESPACE pg_default;

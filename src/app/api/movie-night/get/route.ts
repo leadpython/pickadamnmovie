@@ -71,7 +71,54 @@ export async function POST(request: Request) {
       movieNight = data;
     }
 
-    return NextResponse.json(movieNight);
+    // If there's a selected movie (imdb_id), fetch its details from the roster
+    let movies = null;
+    if (movieNight.imdb_id) {
+      const { data: rosterMovie, error: rosterError } = await supabaseAdmin
+        .from('movie_roster')
+        .select('imdb_id, meta_data')
+        .eq('imdb_id', movieNight.imdb_id)
+        .single();
+
+      if (!rosterError && rosterMovie) {
+        // Transform the movie data to match the expected format
+        const movieData = {
+          imdb_id: rosterMovie.imdb_id,
+          title: rosterMovie.meta_data.title || 'Unknown Title',
+          year: rosterMovie.meta_data.year || 0,
+          runtime: rosterMovie.meta_data.runtime || 0,
+          poster_url: rosterMovie.meta_data.poster_url || '/movie-placeholder.svg',
+          rated: rosterMovie.meta_data.rated,
+          released: rosterMovie.meta_data.released,
+          genre: rosterMovie.meta_data.genre,
+          director: rosterMovie.meta_data.director,
+          writer: rosterMovie.meta_data.writer,
+          actors: rosterMovie.meta_data.actors,
+          plot: rosterMovie.meta_data.plot,
+          language: rosterMovie.meta_data.language,
+          country: rosterMovie.meta_data.country,
+          awards: rosterMovie.meta_data.awards,
+          ratings: rosterMovie.meta_data.ratings,
+          metascore: rosterMovie.meta_data.metascore,
+          imdb_rating: rosterMovie.meta_data.imdb_rating,
+          imdb_votes: rosterMovie.meta_data.imdb_votes,
+          type: rosterMovie.meta_data.type,
+          dvd: rosterMovie.meta_data.dvd,
+          box_office: rosterMovie.meta_data.box_office,
+          production: rosterMovie.meta_data.production,
+          website: rosterMovie.meta_data.website,
+        };
+
+        movies = {
+          [rosterMovie.imdb_id]: movieData
+        };
+      }
+    }
+
+    return NextResponse.json({
+      ...movieNight,
+      movies
+    });
   } catch (error) {
     console.error('Error fetching movie night:', error);
     return NextResponse.json(

@@ -3,10 +3,10 @@ import { supabaseAdmin } from '@/config/supabase';
 
 export async function POST(request: Request) {
   try {
-    const { date, timezone, sessionId } = await request.json();
+    const { sessionId } = await request.json();
 
     // Validate required fields
-    if (!date || !timezone || !sessionId) {
+    if (!sessionId) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
@@ -27,28 +27,31 @@ export async function POST(request: Request) {
       );
     }
 
-    // Store the date as-is without any conversions
-    const { data: movieNight, error: createError } = await supabaseAdmin
+    // Get all past movie nights with selected movies for this group
+    const { data: pastMovieNights, error: fetchError } = await supabaseAdmin
       .from('movie_night')
-      .insert({
-        date,
-        timezone,
-        movie_night_group_id: session.movie_night_group_id,
-      })
-      .select()
-      .single();
+      .select('imdb_id')
+      .eq('movie_night_group_id', session.movie_night_group_id)
+      .not('imdb_id', 'is', null)
+      .lt('date', new Date().toISOString());
 
-    if (createError) {
-      console.error('Error creating movie night:', createError);
+    if (fetchError) {
+      console.error('Error fetching watched movies:', fetchError);
       return NextResponse.json(
-        { error: 'Failed to create movie night' },
+        { error: 'Failed to fetch watched movies' },
         { status: 500 }
       );
     }
 
-    return NextResponse.json(movieNight);
+    // Extract unique imdb_ids from past movie nights
+    const watchedMovieIds = [...new Set(pastMovieNights.map(mn => mn.imdb_id))];
+
+    return NextResponse.json({
+      watchedMovieIds,
+      count: watchedMovieIds.length
+    });
   } catch (error) {
-    console.error('Create movie night error:', error);
+    console.error('Watched movies error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

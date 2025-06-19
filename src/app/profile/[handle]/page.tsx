@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import MovieSearchModal from '@/components/MovieSearchModal';
@@ -92,6 +92,7 @@ export default function ProfilePage({ params }: PageProps) {
   // Roster state
   const [rosterMovies, setRosterMovies] = useState<Movie[]>([]);
   const [isLoadingRoster, setIsLoadingRoster] = useState(false);
+  const [watchedMovieIds, setWatchedMovieIds] = useState<string[]>([]);
   const [collapsedSections, setCollapsedSections] = useState({
     roster: false,
     upcoming: false,
@@ -113,34 +114,28 @@ export default function ProfilePage({ params }: PageProps) {
   const [isSecretWordValid, setIsSecretWordValid] = useState(false);
   const [validatedSecretWord, setValidatedSecretWord] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const { handle: resolvedHandle } = await params;
-        setHandle(resolvedHandle);
-        // Fetch movie night group data
-        const response = await fetch(`/api/movie-night-group/${resolvedHandle}`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch movie night group');
-        }
-        const data = await response.json();
-        setGroup(data.group);
-        setMovieNights(data.movieNights);
-        
-        // Fetch roster movies
-        await fetchRosterMovies();
-      } catch (error) {
-        console.error('Error fetching data:', error);
-        setError('Failed to load movie night group');
-      } finally {
-        setLoading(false);
+  const fetchWatchedMovies = useCallback(async () => {
+    try {
+      const response = await fetch('/api/movie-night/watched-movies-public', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ handle }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch watched movies');
       }
-    };
 
-    fetchData();
-  }, [params]);
+      const data = await response.json();
+      setWatchedMovieIds(data.watchedMovieIds || []);
+    } catch (error) {
+      console.error('Error fetching watched movies:', error);
+    }
+  }, [handle]);
 
-  const fetchRosterMovies = async () => {
+  const fetchRosterMovies = useCallback(async () => {
     try {
       setIsLoadingRoster(true);
       const response = await fetch('/api/movie-roster/list-public');
@@ -156,7 +151,65 @@ export default function ProfilePage({ params }: PageProps) {
     } finally {
       setIsLoadingRoster(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Extract handle from params
+        const { handle: resolvedHandle } = await params;
+        setHandle(resolvedHandle);
+
+        // Fetch group data
+        const groupResponse = await fetch('/api/movie-night-group/get-by-handle', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ handle: resolvedHandle }),
+        });
+
+        if (!groupResponse.ok) {
+          throw new Error('Group not found');
+        }
+
+        const groupData = await groupResponse.json();
+        setGroup(groupData);
+
+        // Fetch movie nights
+        const movieNightsResponse = await fetch('/api/movie-night/list-public', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ handle: resolvedHandle }),
+        });
+
+        if (!movieNightsResponse.ok) {
+          throw new Error('Failed to fetch movie nights');
+        }
+
+        const movieNightsData = await movieNightsResponse.json();
+        setMovieNights(movieNightsData.movieNights || []);
+
+        // Fetch roster movies
+        await fetchRosterMovies();
+
+        // Fetch watched movies
+        await fetchWatchedMovies();
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        setError(error instanceof Error ? error.message : 'Failed to load profile');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [params, fetchWatchedMovies, fetchRosterMovies, handle]);
 
   const handleMovieNightClick = (movieNightId: string) => {
     router.push(`/profile/${handle}/movie-night/${movieNightId}`);
@@ -434,6 +487,15 @@ export default function ProfilePage({ params }: PageProps) {
                                 className="object-cover"
                               />
                               <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-10 transition-opacity duration-200" />
+                              
+                              {/* Watched Indicator */}
+                              {watchedMovieIds.includes(movie.imdb_id) && (
+                                <div className="absolute top-1 left-1 bg-green-500 text-white rounded-full w-5 h-5 flex items-center justify-center">
+                                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                  </svg>
+                                </div>
+                              )}
                             </div>
                             <div className="p-2">
                               <h5 className="text-xs font-medium text-gray-900 truncate">
@@ -441,6 +503,9 @@ export default function ProfilePage({ params }: PageProps) {
                               </h5>
                               <p className="text-[10px] text-gray-500 mt-0.5">
                                 {movie.year} • {movie.runtime} min
+                                {watchedMovieIds.includes(movie.imdb_id) && (
+                                  <span className="text-green-600 font-medium"> • Watched</span>
+                                )}
                               </p>
                             </div>
                           </div>
