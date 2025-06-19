@@ -3,34 +3,35 @@ import { supabaseAdmin } from '@/config/supabase';
 
 export async function POST(request: Request) {
   try {
-    const { sessionId, movie } = await request.json();
+    const { movie, handle, secretWord } = await request.json();
 
     // Validate required fields
-    if (!sessionId || !movie) {
+    if (!movie || !handle) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
       );
     }
 
-    // Check if it's a guest session
-    const { data: guestSession } = await supabaseAdmin
-      .from('sessions_guest')
-      .select('id')
-      .eq('id', sessionId)
-      .single();
-
-    if (!guestSession) {
-      // Validate regular session
-      const { data: session, error: sessionError } = await supabaseAdmin
-        .from('sessions')
-        .select('id')
-        .eq('id', sessionId)
+    // Validate secret word if provided
+    if (secretWord) {
+      const { data: group, error: groupError } = await supabaseAdmin
+        .from('movie_night_group')
+        .select('id, secret_word')
+        .eq('handle', handle)
         .single();
 
-      if (sessionError || !session) {
+      if (groupError || !group) {
         return NextResponse.json(
-          { error: 'Invalid session' },
+          { error: 'Movie night group not found' },
+          { status: 404 }
+        );
+      }
+
+      // If group has a secret word, validate it
+      if (group.secret_word && group.secret_word !== secretWord) {
+        return NextResponse.json(
+          { error: 'Invalid secret word' },
           { status: 401 }
         );
       }

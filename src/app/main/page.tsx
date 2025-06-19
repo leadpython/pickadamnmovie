@@ -1,10 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useStore } from '@/store/store';
 import Image from 'next/image';
 import NewMovieNightModal from '@/components/NewMovieNightModal';
+import MovieSearchModal from '@/components/MovieSearchModal';
+import MovieDetailsModal from '@/components/MovieDetailsModal';
 
 interface Movie {
   imdb_id: string;
@@ -41,6 +43,33 @@ interface MovieNight {
   movie_night_group_id: string;
 }
 
+interface OMDBMovie {
+  Title: string;
+  Year: string;
+  imdbID: string;
+  Type: string;
+  Poster: string;
+  Rated?: string;
+  Released?: string;
+  Runtime?: string;
+  Genre?: string;
+  Director?: string;
+  Writer?: string;
+  Actors?: string;
+  Plot?: string;
+  Language?: string;
+  Country?: string;
+  Awards?: string;
+  Ratings?: { Source: string; Value: string }[];
+  Metascore?: string;
+  imdbRating?: string;
+  imdbVotes?: string;
+  DVD?: string;
+  BoxOffice?: string;
+  Production?: string;
+  Website?: string;
+}
+
 export default function MainPage() {
   const router = useRouter();
   const { sessionId, group, isHydrated } = useStore();
@@ -51,9 +80,45 @@ export default function MainPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [collapsedSections, setCollapsedSections] = useState({
+    roster: false,
     upcoming: false,
     past: false,
   });
+  
+  // Roster management state
+  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
+  const [isAddingToRoster, setIsAddingToRoster] = useState(false);
+  const [rosterMovies, setRosterMovies] = useState<Movie[]>([]);
+  const [isLoadingRoster, setIsLoadingRoster] = useState(false);
+  
+  // Movie details modal state
+  const [selectedMovieId, setSelectedMovieId] = useState<string | null>(null);
+
+  const fetchRosterMovies = useCallback(async () => {
+    if (!sessionId) return;
+    
+    try {
+      setIsLoadingRoster(true);
+      const response = await fetch('/api/movie-roster/list', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ sessionId }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch roster movies');
+      }
+
+      const data = await response.json();
+      setRosterMovies(data.movies || []);
+    } catch (error) {
+      console.error('Error fetching roster movies:', error);
+    } finally {
+      setIsLoadingRoster(false);
+    }
+  }, [sessionId]);
 
   useEffect(() => {
     const validateSession = async () => {
@@ -107,6 +172,9 @@ export default function MainPage() {
 
           const movieNightsData = await movieNightsResponse.json();
           setMovieNights(movieNightsData);
+          
+          // Fetch roster movies
+          await fetchRosterMovies();
         } else {
           console.log('Session validation failed:', data.error);
           router.push('/');
@@ -120,7 +188,7 @@ export default function MainPage() {
     };
 
     validateSession();
-  }, [sessionId, group, isHydrated, router]);
+  }, [sessionId, group, isHydrated, router, fetchRosterMovies]);
 
   const handleSubmit = async (formData: { date: string; time: string }) => {
     setIsSubmitting(true);
@@ -159,11 +227,89 @@ export default function MainPage() {
     }
   };
 
-  const toggleSection = (section: 'upcoming' | 'past') => {
+  const handleSearchMovie = () => {
+    setIsSearchModalOpen(true);
+  };
+
+  const handleSelectMovie = (movie: OMDBMovie) => {
+    handleAddToRoster(movie);
+    setIsSearchModalOpen(false);
+  };
+
+  const handleAddToRoster = async (movie: OMDBMovie) => {
+    if (!sessionId) {
+      alert('You must be logged in to add movies to the roster.');
+      return;
+    }
+
+    setIsAddingToRoster(true);
+    try {
+      const response = await fetch('/api/movie-roster/add', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sessionId,
+          movie,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to add movie to roster');
+      }
+
+      // Refresh roster movies
+      await fetchRosterMovies();
+    } catch (error) {
+      console.error('Error adding movie to roster:', error);
+      alert(error instanceof Error ? error.message : 'Failed to add movie to roster');
+    } finally {
+      setIsAddingToRoster(false);
+    }
+  };
+
+  const handleRemoveFromRoster = async (imdbId: string) => {
+    if (!sessionId || !confirm('Are you sure you want to remove this movie from the roster?')) return;
+
+    try {
+      const response = await fetch('/api/movie-roster/remove', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          imdb_id: imdbId,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to remove movie from roster');
+      }
+
+      // Refresh roster movies
+      await fetchRosterMovies();
+    } catch (error) {
+      console.error('Error removing movie from roster:', error);
+      alert(error instanceof Error ? error.message : 'Failed to remove movie from roster');
+    }
+  };
+
+  const toggleSection = (section: 'roster' | 'upcoming' | 'past') => {
     setCollapsedSections(prev => ({
       ...prev,
       [section]: !prev[section],
     }));
+  };
+
+  const handleMovieClick = (imdbId: string) => {
+    setSelectedMovieId(imdbId);
+  };
+
+  const handleCloseMovieDetails = () => {
+    setSelectedMovieId(null);
   };
 
   // Show loading state while validating or waiting for hydration
@@ -215,13 +361,6 @@ export default function MainPage() {
             <div className="flex items-center space-x-4">
               <button
                 type="button"
-                onClick={() => setIsModalOpen(true)}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-              >
-                New Movie Night
-              </button>
-              <button
-                type="button"
                 className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                 onClick={() => {
                   useStore.getState().clearSession();
@@ -238,6 +377,139 @@ export default function MainPage() {
       {/* Main Content */}
       <div className="py-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Movie Roster */}
+          <div className="mb-8">
+            <div className="sm:flex sm:items-center">
+              <div className="sm:flex-auto">
+                <button
+                  onClick={() => toggleSection('roster')}
+                  className="flex items-center space-x-2 text-lg font-semibold text-gray-900 hover:text-gray-700 transition-colors"
+                >
+                  <svg
+                    className={`w-5 h-5 transition-transform ${collapsedSections.roster ? 'rotate-90' : 'rotate-0'}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                  <span>Movie Roster</span>
+                  <span className="text-sm font-normal text-gray-500">({rosterMovies.length})</span>
+                </button>
+                <p className="mt-1 text-sm text-gray-500">
+                  Movies available for selection in movie nights
+                </p>
+              </div>
+            </div>
+            {!collapsedSections.roster && (
+              <>
+                {isLoadingRoster ? (
+                  <div className="mt-4 text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
+                    <p className="mt-2 text-sm text-gray-600">Loading roster...</p>
+                  </div>
+                ) : (
+                  <div className="mt-4">
+                    {rosterMovies.length > 0 ? (
+                      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-3">
+                        {/* Add Movie Card */}
+                        <button
+                          onClick={handleSearchMovie}
+                          disabled={isAddingToRoster}
+                          className="group bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 border-2 border-dashed border-gray-300 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <div className="aspect-[2/3] relative rounded-t-lg overflow-hidden bg-gray-50 flex flex-col items-center justify-center">
+                            {isAddingToRoster ? (
+                              <>
+                                <svg className="animate-spin h-6 w-6 text-gray-400 mb-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                <span className="text-xs text-gray-500">Adding...</span>
+                              </>
+                            ) : (
+                              <>
+                                <svg className="w-6 h-6 text-gray-400 mb-1 group-hover:text-gray-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                </svg>
+                                <span className="text-xs font-medium text-gray-600 group-hover:text-gray-900 transition-colors">Add</span>
+                              </>
+                            )}
+                          </div>
+                        </button>
+                        {rosterMovies.map((movie) => (
+                          <div
+                            key={movie.imdb_id}
+                            className="group bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 relative cursor-pointer"
+                            onClick={() => handleMovieClick(movie.imdb_id)}
+                          >
+                            <div className="aspect-[2/3] relative rounded-t-lg overflow-hidden">
+                              <Image
+                                src={movie.poster_url === 'N/A' ? '/movie-placeholder.svg' : movie.poster_url}
+                                alt={movie.title}
+                                fill
+                                className="object-cover"
+                              />
+                              <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-10 transition-opacity duration-200" />
+                            </div>
+                            <div className="p-2">
+                              <h5 className="text-xs font-medium text-gray-900 truncate">
+                                {movie.title}
+                              </h5>
+                              <p className="text-[10px] text-gray-500 mt-0.5">
+                                {movie.year} • {movie.runtime} min
+                              </p>
+                            </div>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRemoveFromRoster(movie.imdb_id);
+                              }}
+                              className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-red-600"
+                              title="Remove from roster"
+                            >
+                              <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10 gap-3">
+                        {/* Add Movie Card (when no movies) */}
+                        <button
+                          onClick={handleSearchMovie}
+                          disabled={isAddingToRoster}
+                          className="group bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 border-2 border-dashed border-gray-300 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <div className="aspect-[2/3] relative rounded-t-lg overflow-hidden bg-gray-50 flex flex-col items-center justify-center">
+                            {isAddingToRoster ? (
+                              <>
+                                <svg className="animate-spin h-6 w-6 text-gray-400 mb-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                <span className="text-xs text-gray-500">Adding...</span>
+                              </>
+                            ) : (
+                              <>
+                                <svg className="w-6 h-6 text-gray-400 mb-1 group-hover:text-gray-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                </svg>
+                                <span className="text-xs font-medium text-gray-600 group-hover:text-gray-900 transition-colors">Add</span>
+                              </>
+                            )}
+                          </div>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
           {/* Upcoming Movie Nights */}
           <div className="mb-6">
             <div className="sm:flex sm:items-center">
@@ -261,6 +533,60 @@ export default function MainPage() {
             </div>
             {!collapsedSections.upcoming && (
               <div className="mt-4 space-y-2">
+                {/* New Movie Night Card */}
+                <button
+                  onClick={() => setIsModalOpen(true)}
+                  disabled={isSubmitting}
+                  className="w-full bg-white shadow-sm rounded-lg overflow-hidden hover:shadow-md transition-shadow duration-200 text-left border-2 border-dashed border-gray-300 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <div className="p-3">
+                    <div className="flex items-center space-x-3">
+                      {/* New Movie Night Icon */}
+                      <div className="flex-shrink-0 w-16 h-24 relative rounded overflow-hidden border border-gray-200 bg-gray-50 flex flex-col items-center justify-center">
+                        {isSubmitting ? (
+                          <>
+                            <svg className="animate-spin h-6 w-6 text-gray-400 mb-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            <span className="text-[10px] text-gray-500 text-center">Creating...</span>
+                          </>
+                        ) : (
+                          <>
+                            <svg className="w-6 h-6 text-gray-400 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                            </svg>
+                            <span className="text-[10px] text-gray-500 text-center">New</span>
+                          </>
+                        )}
+                      </div>
+
+                      {/* New Movie Night Details */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h3 className="text-sm font-medium text-gray-900">
+                              {isSubmitting ? 'Creating...' : 'New Movie Night'}
+                            </h3>
+                            <p className="text-xs text-gray-500">
+                              {isSubmitting ? 'Please wait...' : 'Schedule a new movie night'}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="mt-1">
+                          <h4 className="text-sm font-medium text-gray-900">
+                            {isSubmitting ? 'Setting up your movie night...' : 'Click to create a new movie night'}
+                          </h4>
+                          <p className="text-xs text-gray-500">
+                            Choose date and time
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </button>
+
                 {upcomingMovieNights.map((movieNight) => {
                   const date = new Date(movieNight.date);
                   const selectedMovie = movieNight.imdb_id && movieNight.movies ? movieNight.movies[movieNight.imdb_id] : null;
@@ -439,6 +765,22 @@ export default function MainPage() {
         isSubmitting={isSubmitting}
         error={error}
       />
+
+      {/* Search Modal */}
+      {isSearchModalOpen && (
+        <MovieSearchModal
+          onClose={() => setIsSearchModalOpen(false)}
+          onSelectMovie={handleSelectMovie}
+        />
+      )}
+
+      {/* Movie Details Modal */}
+      {selectedMovieId && (
+        <MovieDetailsModal
+          imdbId={selectedMovieId}
+          onClose={handleCloseMovieDetails}
+        />
+      )}
     </div>
   );
 } 

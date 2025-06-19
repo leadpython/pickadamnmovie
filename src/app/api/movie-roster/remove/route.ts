@@ -14,7 +14,7 @@ export async function DELETE(request: Request) {
     }
 
     // Check if movie exists in roster
-    const { data: _existingMovie, error: checkError } = await supabaseAdmin
+    const { error: checkError } = await supabaseAdmin
       .from('movie_roster')
       .select('id')
       .eq('imdb_id', imdb_id)

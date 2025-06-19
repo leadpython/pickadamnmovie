@@ -3,8 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Image from 'next/image';
-import MovieSearchModal from '@/components/MovieSearchModal';
-import MovieDetailsModal from '@/components/MovieDetailsModal';
 import { useStore } from '@/store/store';
 
 interface Movie {
@@ -42,33 +40,6 @@ interface MovieNight {
   movie_night_group_id: string;
 }
 
-interface OMDBMovie {
-  Title: string;
-  Year: string;
-  imdbID: string;
-  Type: string;
-  Poster: string;
-  Rated?: string;
-  Released?: string;
-  Runtime?: string;
-  Genre?: string;
-  Director?: string;
-  Writer?: string;
-  Actors?: string;
-  Plot?: string;
-  Language?: string;
-  Country?: string;
-  Awards?: string;
-  Ratings?: { Source: string; Value: string }[];
-  Metascore?: string;
-  imdbRating?: string;
-  imdbVotes?: string;
-  DVD?: string;
-  BoxOffice?: string;
-  Production?: string;
-  Website?: string;
-}
-
 export default function ProfileMovieNightDetailsPage() {
   const router = useRouter();
   const params = useParams();
@@ -77,12 +48,8 @@ export default function ProfileMovieNightDetailsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
-  const [selectedMovieId, setSelectedMovieId] = useState<string | null>(null);
-  const [isNominating, setIsNominating] = useState(false);
   const [isPickingRandom, setIsPickingRandom] = useState(false);
   const [localMovies, setLocalMovies] = useState<Record<string, Movie> | null>(null);
-  const [isViewingDetails, setIsViewingDetails] = useState(false);
 
   const movieNightId = params.id as string;
   const handle = params.handle as string;
@@ -152,61 +119,6 @@ export default function ProfileMovieNightDetailsPage() {
     }
   };
 
-  const handleSearchMovie = () => {
-    setIsSearchModalOpen(true);
-  };
-
-  const handleSelectMovie = (movie: OMDBMovie) => {
-    setSelectedMovieId(movie.imdbID);
-    setIsSearchModalOpen(false);
-  };
-
-  const handleNominateMovie = async (movie: OMDBMovie) => {
-    if (!sessionId) {
-      alert('You must be logged in to nominate movies.');
-      return;
-    }
-
-    await submitNomination(movie);
-  };
-
-  const submitNomination = async (movie: OMDBMovie) => {
-    if (!movieNight) return;
-    
-    try {
-      const response = await fetch('/api/movie-night/nominate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          movieNightId: movieNight.id,
-          sessionId: sessionId,
-          movie,
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to nominate movie');
-      }
-
-      const { movies: updatedMovies } = await response.json();
-
-      setLocalMovies(updatedMovies);
-      setMovieNight(prev => prev ? { ...prev, movies: updatedMovies } : null);
-      setSelectedMovieId(null);
-    } catch (error) {
-      console.error('Error nominating movie:', error);
-      throw error;
-    }
-  };
-
-  const handleViewMovieDetails = (movie: Movie) => {
-    setSelectedMovieId(movie.imdb_id);
-    setIsViewingDetails(true);
-  };
-
   const handlePickRandomMovie = async () => {
     if (!localMovies || Object.keys(localMovies).length === 0 || !movieNight) return;
     
@@ -264,7 +176,6 @@ export default function ProfileMovieNightDetailsPage() {
 
   const date = new Date(movieNight.date);
   const selectedMovie = movieNight.imdb_id ? localMovies?.[movieNight.imdb_id] : null;
-  const nominatedMovies = localMovies ? Object.values(localMovies) : [];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -333,68 +244,6 @@ export default function ProfileMovieNightDetailsPage() {
                 </div>
               )}
             </div>
-
-            {/* Nominated Movies */}
-            <div className="mt-6">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-medium text-gray-900">Nominated Movies</h3>
-                <button
-                  type="button"
-                  onClick={handleSearchMovie}
-                  disabled={isNominating}
-                  className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isNominating ? (
-                    <>
-                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-gray-700" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Nominating...
-                    </>
-                  ) : (
-                    'Nominate Movie'
-                  )}
-                </button>
-              </div>
-              <div className="mt-3 space-y-2">
-                {nominatedMovies.length > 0 ? (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                    {nominatedMovies.map((movie) => (
-                      <button
-                        key={movie.imdb_id}
-                        onClick={() => handleViewMovieDetails(movie)}
-                        className={`group bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 text-left ${
-                          movie.imdb_id === movieNight.imdb_id ? 'ring-2 ring-indigo-500' : ''
-                        }`}
-                      >
-                        <div className="aspect-[2/3] relative rounded-t-lg overflow-hidden">
-                          <Image
-                            src={movie.poster_url === 'N/A' ? '/movie-placeholder.svg' : movie.poster_url}
-                            alt={movie.title}
-                            fill
-                            className="object-cover group-hover:scale-105 transition-transform duration-200"
-                          />
-                          <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-10 transition-opacity duration-200" />
-                        </div>
-                        <div className="p-3">
-                          <h5 className="text-sm font-medium text-gray-900 truncate group-hover:text-indigo-600 transition-colors duration-200">
-                            {movie.title}
-                          </h5>
-                          <p className="text-xs text-gray-500 mt-1">
-                            {movie.year} • {movie.runtime} min
-                          </p>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="bg-white shadow-sm rounded-lg p-4 text-center">
-                    <p className="text-sm text-gray-500">No movies nominated yet</p>
-                  </div>
-                )}
-              </div>
-            </div>
           </div>
         </div>
       </div>
@@ -429,27 +278,6 @@ export default function ProfileMovieNightDetailsPage() {
             <p className="text-lg font-medium text-gray-900">Picking a random movie...</p>
           </div>
         </div>
-      )}
-
-      {/* Search Modal */}
-      {isSearchModalOpen && (
-        <MovieSearchModal
-          onClose={() => setIsSearchModalOpen(false)}
-          onSelectMovie={handleSelectMovie}
-        />
-      )}
-
-      {/* Movie Details Modal */}
-      {selectedMovieId && (
-        <MovieDetailsModal
-          imdbId={selectedMovieId}
-          onClose={() => {
-            setSelectedMovieId(null);
-            setIsViewingDetails(false);
-          }}
-          onNominate={isViewingDetails ? undefined : handleNominateMovie}
-          isNominating={isNominating}
-        />
       )}
     </div>
   );

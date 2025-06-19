@@ -3,66 +3,7 @@ import { supabaseAdmin } from '@/config/supabase';
 
 export async function GET() {
   try {
-    // Fetch all movies from roster
-    const { data: movieRoster, error } = await supabaseAdmin
-      .from('movie_roster')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('Error fetching movie roster:', error);
-      return NextResponse.json(
-        { error: 'Failed to fetch movie roster' },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json(movieRoster);
-  } catch (error) {
-    console.error('Fetch movie roster error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
-  }
-}
-
-export async function POST(request: Request) {
-  try {
-    const { sessionId } = await request.json();
-
-    // Validate required fields
-    if (!sessionId) {
-      return NextResponse.json(
-        { error: 'Missing required fields' },
-        { status: 400 }
-      );
-    }
-
-    // Check if it's a guest session
-    const { data: guestSession } = await supabaseAdmin
-      .from('sessions_guest')
-      .select('id')
-      .eq('id', sessionId)
-      .single();
-
-    if (!guestSession) {
-      // Validate regular session
-      const { data: session, error: sessionError } = await supabaseAdmin
-        .from('sessions')
-        .select('id')
-        .eq('id', sessionId)
-        .single();
-
-      if (sessionError || !session) {
-        return NextResponse.json(
-          { error: 'Invalid session' },
-          { status: 401 }
-        );
-      }
-    }
-
-    // Fetch all roster movies (global roster)
+    // Fetch all roster movies (global roster) - public access
     const { data: rosterMovies, error } = await supabaseAdmin
       .from('movie_roster')
       .select('*')
