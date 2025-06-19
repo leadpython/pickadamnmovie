@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import MovieNightDetailsModal from '@/components/MovieNightDetailsModal';
+import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 
 interface Movie {
@@ -36,7 +36,6 @@ interface MovieNight {
   date: string;
   imdb_id: string | null;
   movies: Record<string, Movie> | null;
-  description: string;
   movie_night_group_id: string;
 }
 
@@ -53,18 +52,20 @@ interface PageProps {
 }
 
 export default function ProfilePage({ params }: PageProps) {
+  const router = useRouter();
   const [group, setGroup] = useState<MovieNightGroup | null>(null);
   const [movieNights, setMovieNights] = useState<MovieNight[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedMovieNight, setSelectedMovieNight] = useState<MovieNight | null>(null);
+  const [handle, setHandle] = useState<string>('');
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const { handle } = await params;
+        const { handle: resolvedHandle } = await params;
+        setHandle(resolvedHandle);
         // Fetch movie night group data
-        const response = await fetch(`/api/movie-night-group/${handle}`);
+        const response = await fetch(`/api/movie-night-group/${resolvedHandle}`);
         if (!response.ok) {
           throw new Error('Failed to fetch movie night group');
         }
@@ -82,16 +83,8 @@ export default function ProfilePage({ params }: PageProps) {
     fetchData();
   }, [params]);
 
-  const handleNominateMovie = (movie: Movie, movies: Record<string, Movie>) => {
-    if (selectedMovieNight) {
-      setMovieNights(prevNights =>
-        prevNights.map(night =>
-          night.id === selectedMovieNight.id
-            ? { ...night, movies }
-            : night
-        )
-      );
-    }
+  const handleMovieNightClick = (movieNightId: string) => {
+    router.push(`/profile/${handle}/movie-night/${movieNightId}`);
   };
 
   if (loading) {
@@ -181,7 +174,7 @@ export default function ProfilePage({ params }: PageProps) {
                     return (
                       <button
                         key={night.id}
-                        onClick={() => setSelectedMovieNight(night)}
+                        onClick={() => handleMovieNightClick(night.id)}
                         className="w-full bg-white shadow-sm rounded-lg overflow-hidden hover:shadow-md transition-shadow duration-200 text-left"
                       >
                         <div className="p-3">
@@ -242,10 +235,6 @@ export default function ProfilePage({ params }: PageProps) {
                                   </p>
                                 )}
                               </div>
-
-                              <p className="mt-1 text-xs text-gray-600 line-clamp-1">
-                                {night.description}
-                              </p>
                             </div>
                           </div>
                         </div>
@@ -272,7 +261,7 @@ export default function ProfilePage({ params }: PageProps) {
                     return (
                       <button
                         key={night.id}
-                        onClick={() => setSelectedMovieNight(night)}
+                        onClick={() => handleMovieNightClick(night.id)}
                         className="w-full bg-white/50 shadow-sm rounded overflow-hidden hover:bg-white/80 transition-colors duration-200 text-left"
                       >
                         <div className="px-3 py-2">
@@ -335,19 +324,6 @@ export default function ProfilePage({ params }: PageProps) {
           </div>
         </div>
       </div>
-
-      {/* Movie Night Details Modal */}
-      {selectedMovieNight && (
-        <MovieNightDetailsModal
-          movieNight={selectedMovieNight}
-          onClose={() => setSelectedMovieNight(null)}
-          onNominateMovie={handleNominateMovie}
-          onCancelMovieNight={() => {}}
-          onPickRandomMovie={() => {}}
-          hideActions={true}
-          showNominateButton={true}
-        />
-      )}
     </div>
   );
 }

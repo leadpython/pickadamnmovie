@@ -26,9 +26,7 @@ export async function GET(
       .select(`
         id,
         date,
-        description,
         imdb_id,
-        movies,
         movie_night_group_id
       `)
       .eq('movie_night_group_id', group.id)

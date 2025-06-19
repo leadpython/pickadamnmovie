@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useStore } from '@/store/store';
 import Image from 'next/image';
-import MovieNightDetailsModal from '@/components/MovieNightDetailsModal';
+import NewMovieNightModal from '@/components/NewMovieNightModal';
 
 interface Movie {
   imdb_id: string;
@@ -38,15 +38,7 @@ interface MovieNight {
   date: string;
   imdb_id: string | null;
   movies: Record<string, Movie> | null;
-  description: string;
   movie_night_group_id: string;
-}
-
-interface FormData {
-  date: string;
-  time: string;
-  description: string;
-  secret: string;
 }
 
 export default function MainPage() {
@@ -56,15 +48,12 @@ export default function MainPage() {
   const [movieNights, setMovieNights] = useState<MovieNight[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState<FormData>({
-    date: '',
-    time: '',
-    description: '',
-    secret: '',
-  });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedMovieNight, setSelectedMovieNight] = useState<MovieNight | null>(null);
+  const [collapsedSections, setCollapsedSections] = useState({
+    upcoming: false,
+    past: false,
+  });
 
   useEffect(() => {
     const validateSession = async () => {
@@ -133,8 +122,7 @@ export default function MainPage() {
     validateSession();
   }, [sessionId, group, isHydrated, router]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (formData: { date: string; time: string }) => {
     setIsSubmitting(true);
     setError(null);
 
@@ -148,8 +136,6 @@ export default function MainPage() {
         },
         body: JSON.stringify({
           date: dateTime.toISOString(),
-          description: formData.description,
-          secret: formData.secret,
           sessionId,
         }),
       });
@@ -163,9 +149,8 @@ export default function MainPage() {
       // Add the new movie night to the list
       setMovieNights(prev => [data, ...prev]);
 
-      // Close modal and reset form
+      // Close modal
       setIsModalOpen(false);
-      setFormData({ date: '', time: '', description: '', secret: '' });
     } catch (error) {
       console.error('Error creating movie night:', error);
       setError(error instanceof Error ? error.message : 'Failed to create movie night');
@@ -174,64 +159,11 @@ export default function MainPage() {
     }
   };
 
-  const handleCancelMovieNight = async () => {
-    if (!selectedMovieNight) return;
-
-    const response = await fetch('/api/movie-night/cancel', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        movieNightId: selectedMovieNight.id,
-        sessionId,
-      }),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to cancel movie night');
-    }
-
-    // Remove the movie night from the list
-    setMovieNights(prev => prev.filter(mn => mn.id !== selectedMovieNight.id));
-  };
-
-  const handlePickRandomMovie = async () => {
-    if (!selectedMovieNight) return;
-
-    const response = await fetch('/api/movie-night/pick-random', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        movieNightId: selectedMovieNight.id,
-        sessionId,
-      }),
-    });
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Failed to pick random movie');
-    }
-
-    const { selectedMovie } = await response.json();
-
-    // Update the movie night in the list
-    setMovieNights(prev => prev.map(mn => 
-      mn.id === selectedMovieNight.id
-        ? { ...mn, imdb_id: selectedMovie.imdb_id }
-        : mn
-    ));
-
-    // Update the selected movie night
-    setSelectedMovieNight(prev => prev ? { ...prev, imdb_id: selectedMovie.imdb_id } : null);
-  };
-
-  const handleNominateMovie = () => {
-    // TODO: Implement movie nomination
-    console.log('Nominate movie clicked');
+  const toggleSection = (section: 'upcoming' | 'past') => {
+    setCollapsedSections(prev => ({
+      ...prev,
+      [section]: !prev[section],
+    }));
   };
 
   // Show loading state while validating or waiting for hydration
@@ -310,118 +242,39 @@ export default function MainPage() {
           <div className="mb-6">
             <div className="sm:flex sm:items-center">
               <div className="sm:flex-auto">
-                <h2 className="text-lg font-semibold text-gray-900">Upcoming Movie Nights</h2>
-              </div>
-            </div>
-            <div className="mt-4 space-y-2">
-              {upcomingMovieNights.map((movieNight) => {
-                const date = new Date(movieNight.date);
-                const selectedMovie = movieNight.imdb_id && movieNight.movies ? movieNight.movies[movieNight.imdb_id] : null;
-
-                return (
-                  <div
-                    key={movieNight.id}
-                    onClick={() => setSelectedMovieNight(movieNight)}
-                    className="bg-white shadow-sm rounded-lg overflow-hidden hover:shadow-md transition-shadow duration-200 cursor-pointer"
+                <button
+                  onClick={() => toggleSection('upcoming')}
+                  className="flex items-center space-x-2 text-lg font-semibold text-gray-900 hover:text-gray-700 transition-colors"
+                >
+                  <svg
+                    className={`w-5 h-5 transition-transform ${collapsedSections.upcoming ? 'rotate-90' : 'rotate-0'}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
                   >
-                    <div className="p-3">
-                      <div className="flex items-center space-x-3">
-                        {/* Movie Poster */}
-                        <div className="flex-shrink-0 w-16 h-24 relative rounded overflow-hidden border border-gray-200">
-                          {selectedMovie ? (
-                            <Image
-                              src={selectedMovie.poster_url}
-                              alt={selectedMovie.title}
-                              fill
-                              className="object-cover"
-                            />
-                          ) : (
-                            <div className="absolute inset-0 flex flex-col items-center justify-center p-1 bg-gray-100">
-                              <div className="w-6 h-6 mb-1">
-                                <svg className="w-full h-full text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
-                                </svg>
-                              </div>
-                              <span className="text-[10px] text-gray-500 text-center">
-                                No Movie
-                              </span>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Movie Night Details */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <h3 className="text-sm font-medium text-gray-900">
-                                {date.toLocaleDateString('en-US', {
-                                  weekday: 'short',
-                                  month: 'short',
-                                  day: 'numeric',
-                                })}
-                              </h3>
-                              <p className="text-xs text-gray-500">
-                                {date.toLocaleTimeString('en-US', {
-                                  hour: 'numeric',
-                                  minute: '2-digit',
-                                })}
-                              </p>
-                            </div>
-                          </div>
-
-                          <div className="mt-1">
-                            <h4 className="text-sm font-medium text-gray-900">
-                              {selectedMovie ? selectedMovie.title : 'No movie selected yet'}
-                            </h4>
-                            {selectedMovie && (
-                              <p className="text-xs text-gray-500">
-                                {selectedMovie.year} • {selectedMovie.runtime} min
-                              </p>
-                            )}
-                          </div>
-
-                          <p className="mt-1 text-xs text-gray-600 line-clamp-1">
-                            {movieNight.description}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-
-              {upcomingMovieNights.length === 0 && (
-                <div className="text-center py-8">
-                  <h3 className="text-sm font-medium text-gray-900">No upcoming movie nights</h3>
-                  <p className="mt-1 text-xs text-gray-500">Get started by creating your first movie night!</p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Past Movie Nights */}
-          {pastMovieNights.length > 0 && (
-            <div className="mt-6">
-              <div className="sm:flex sm:items-center">
-                <div className="sm:flex-auto">
-                  <h2 className="text-lg font-semibold text-gray-900">Past Movie Nights</h2>
-                </div>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                  <span>Upcoming Movie Nights</span>
+                  <span className="text-sm font-normal text-gray-500">({upcomingMovieNights.length})</span>
+                </button>
               </div>
-              <div className="mt-3 space-y-1">
-                {pastMovieNights.map((movieNight) => {
+            </div>
+            {!collapsedSections.upcoming && (
+              <div className="mt-4 space-y-2">
+                {upcomingMovieNights.map((movieNight) => {
                   const date = new Date(movieNight.date);
                   const selectedMovie = movieNight.imdb_id && movieNight.movies ? movieNight.movies[movieNight.imdb_id] : null;
 
                   return (
                     <div
                       key={movieNight.id}
-                      onClick={() => setSelectedMovieNight(movieNight)}
-                      className="bg-white/50 shadow-sm rounded overflow-hidden hover:bg-white/80 transition-colors duration-200 cursor-pointer"
+                      onClick={() => router.push(`/main/${movieNight.id}`)}
+                      className="bg-white shadow-sm rounded-lg overflow-hidden hover:shadow-md transition-shadow duration-200 cursor-pointer"
                     >
-                      <div className="px-3 py-2">
-                        <div className="flex items-center space-x-2">
-                          {/* Tiny Movie Poster */}
-                          <div className="flex-shrink-0 w-8 h-12 relative rounded overflow-hidden border border-gray-200">
+                      <div className="p-3">
+                        <div className="flex items-center space-x-3">
+                          {/* Movie Poster */}
+                          <div className="flex-shrink-0 w-16 h-24 relative rounded overflow-hidden border border-gray-200">
                             {selectedMovie ? (
                               <Image
                                 src={selectedMovie.poster_url}
@@ -430,10 +283,15 @@ export default function MainPage() {
                                 className="object-cover"
                               />
                             ) : (
-                              <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
-                                <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
-                                </svg>
+                              <div className="absolute inset-0 flex flex-col items-center justify-center p-1 bg-gray-100">
+                                <div className="w-6 h-6 mb-1">
+                                  <svg className="w-full h-full text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
+                                  </svg>
+                                </div>
+                                <span className="text-[10px] text-gray-500 text-center">
+                                  No Movie
+                                </span>
                               </div>
                             )}
                           </div>
@@ -441,23 +299,32 @@ export default function MainPage() {
                           {/* Movie Night Details */}
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between">
-                              <div className="flex items-center space-x-2">
-                                <span className="text-xs font-medium text-gray-600">
+                              <div>
+                                <h3 className="text-sm font-medium text-gray-900">
                                   {date.toLocaleDateString('en-US', {
+                                    weekday: 'short',
                                     month: 'short',
                                     day: 'numeric',
                                   })}
-                                </span>
-                                <span className="text-xs text-gray-500">
+                                </h3>
+                                <p className="text-xs text-gray-500">
                                   {date.toLocaleTimeString('en-US', {
                                     hour: 'numeric',
                                     minute: '2-digit',
                                   })}
-                                </span>
+                                </p>
                               </div>
-                              <span className="text-xs text-gray-600 truncate ml-2">
-                                {selectedMovie ? selectedMovie.title : 'No movie selected'}
-                              </span>
+                            </div>
+
+                            <div className="mt-1">
+                              <h4 className="text-sm font-medium text-gray-900">
+                                {selectedMovie ? selectedMovie.title : 'No movie selected yet'}
+                              </h4>
+                              {selectedMovie && (
+                                <p className="text-xs text-gray-500">
+                                  {selectedMovie.year} • {selectedMovie.runtime} min
+                                </p>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -465,118 +332,113 @@ export default function MainPage() {
                     </div>
                   );
                 })}
+
+                {upcomingMovieNights.length === 0 && (
+                  <div className="text-center py-8">
+                    <h3 className="text-sm font-medium text-gray-900">No upcoming movie nights</h3>
+                    <p className="mt-1 text-xs text-gray-500">Get started by creating your first movie night!</p>
+                  </div>
+                )}
               </div>
+            )}
+          </div>
+
+          {/* Past Movie Nights */}
+          {pastMovieNights.length > 0 && (
+            <div className="mt-6">
+              <div className="sm:flex sm:items-center">
+                <div className="sm:flex-auto">
+                  <button
+                    onClick={() => toggleSection('past')}
+                    className="flex items-center space-x-2 text-lg font-semibold text-gray-900 hover:text-gray-700 transition-colors"
+                  >
+                    <svg
+                      className={`w-5 h-5 transition-transform ${collapsedSections.past ? 'rotate-90' : 'rotate-0'}`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                    <span>Past Movie Nights</span>
+                    <span className="text-sm font-normal text-gray-500">({pastMovieNights.length})</span>
+                  </button>
+                </div>
+              </div>
+              {!collapsedSections.past && (
+                <div className="mt-3 space-y-1">
+                  {pastMovieNights.map((movieNight) => {
+                    const date = new Date(movieNight.date);
+                    const selectedMovie = movieNight.imdb_id && movieNight.movies ? movieNight.movies[movieNight.imdb_id] : null;
+
+                    return (
+                      <div
+                        key={movieNight.id}
+                        onClick={() => router.push(`/main/${movieNight.id}`)}
+                        className="bg-white/50 shadow-sm rounded overflow-hidden hover:bg-white/80 transition-colors duration-200 cursor-pointer"
+                      >
+                        <div className="px-3 py-2">
+                          <div className="flex items-center space-x-2">
+                            {/* Tiny Movie Poster */}
+                            <div className="flex-shrink-0 w-8 h-12 relative rounded overflow-hidden border border-gray-200">
+                              {selectedMovie ? (
+                                <Image
+                                  src={selectedMovie.poster_url}
+                                  alt={selectedMovie.title}
+                                  fill
+                                  className="object-cover"
+                                />
+                              ) : (
+                                <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
+                                  <svg className="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z" />
+                                  </svg>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Movie Night Details */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-2">
+                                  <span className="text-xs font-medium text-gray-600">
+                                    {date.toLocaleDateString('en-US', {
+                                      month: 'short',
+                                      day: 'numeric',
+                                    })}
+                                  </span>
+                                  <span className="text-xs text-gray-500">
+                                    {date.toLocaleTimeString('en-US', {
+                                      hour: 'numeric',
+                                      minute: '2-digit',
+                                    })}
+                                  </span>
+                                </div>
+                                <span className="text-xs text-gray-600 truncate ml-2">
+                                  {selectedMovie ? selectedMovie.title : 'No movie selected'}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
         </div>
       </div>
 
       {/* New Movie Night Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg max-w-md w-full">
-            <div className="px-4 py-5 sm:p-6">
-              <h3 className="text-lg font-medium leading-6 text-gray-900 mb-4">
-                Create New Movie Night
-              </h3>
-              {error && (
-                <div className="mb-4 p-2 bg-red-50 border border-red-200 rounded-md">
-                  <p className="text-sm text-red-600">{error}</p>
-                </div>
-              )}
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-4">
-                  <div>
-                    <label htmlFor="date" className="block text-sm font-medium text-gray-700">
-                      Date
-                    </label>
-                    <input
-                      type="date"
-                      id="date"
-                      value={formData.date}
-                      onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
-                      min={new Date().toISOString().split('T')[0]}
-                      required
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="time" className="block text-sm font-medium text-gray-700">
-                      Time
-                    </label>
-                    <input
-                      type="time"
-                      id="time"
-                      value={formData.time}
-                      onChange={(e) => setFormData(prev => ({ ...prev, time: e.target.value }))}
-                      required
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="description" className="block text-sm font-medium text-gray-700">
-                      Description
-                    </label>
-                    <textarea
-                      id="description"
-                      value={formData.description}
-                      onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                      required
-                      rows={3}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="secret" className="block text-sm font-medium text-gray-700">
-                      Secret Password
-                    </label>
-                    <input
-                      type="text"
-                      id="secret"
-                      value={formData.secret}
-                      onChange={(e) => setFormData(prev => ({ ...prev, secret: e.target.value }))}
-                      placeholder="Enter a secret password for public nominations"
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2"
-                      required
-                    />
-                    <p className="mt-1 text-sm text-gray-500">
-                      This password will be required for users to nominate movies without being logged in.
-                    </p>
-                  </div>
-                </div>
-                <div className="mt-5 sm:mt-6 sm:grid sm:grid-flow-row-dense sm:grid-cols-2 sm:gap-3">
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="inline-flex w-full justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-base font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:col-start-2 sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isSubmitting ? 'Creating...' : 'Create Movie Night'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIsModalOpen(false)}
-                    className="mt-3 inline-flex w-full justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:col-start-1 sm:mt-0 sm:text-sm"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Movie Night Details Modal */}
-      {selectedMovieNight && (
-        <MovieNightDetailsModal
-          movieNight={selectedMovieNight}
-          onClose={() => setSelectedMovieNight(null)}
-          onNominateMovie={handleNominateMovie}
-          onCancelMovieNight={handleCancelMovieNight}
-          onPickRandomMovie={handlePickRandomMovie}
-          showNominateButton={true}
-        />
-      )}
+      <NewMovieNightModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSubmit={handleSubmit}
+        isSubmitting={isSubmitting}
+        error={error}
+      />
     </div>
   );
 } 

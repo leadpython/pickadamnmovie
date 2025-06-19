@@ -62,9 +62,7 @@ export async function POST(request: Request) {
       .select(`
         id,
         date,
-        description,
         imdb_id,
-        movies,
         movie_night_group_id
       `)
       .eq('movie_night_group_id', session.movie_night_group_id)

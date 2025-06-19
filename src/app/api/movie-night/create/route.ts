@@ -3,10 +3,10 @@ import { supabaseAdmin } from '@/config/supabase';
 
 export async function POST(request: Request) {
   try {
-    const { date, description, sessionId, secret } = await request.json();
+    const { date, sessionId } = await request.json();
 
     // Validate required fields
-    if (!date || !description || !sessionId || !secret) {
+    if (!date || !sessionId) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
@@ -32,9 +32,7 @@ export async function POST(request: Request) {
       .from('movie_night')
       .insert({
         date,
-        description,
         movie_night_group_id: session.movie_night_group_id,
-        secret, // Secret is now required
       })
       .select()
       .single();
