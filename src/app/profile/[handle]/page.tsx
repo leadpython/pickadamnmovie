@@ -164,36 +164,15 @@ export default function ProfilePage({ params }: PageProps) {
         setHandle(resolvedHandle);
 
         // Fetch group data
-        const groupResponse = await fetch('/api/movie-night-group/get-by-handle', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ handle: resolvedHandle }),
-        });
+        const groupResponse = await fetch(`/api/movie-night-group/${resolvedHandle}`);
 
         if (!groupResponse.ok) {
           throw new Error('Group not found');
         }
 
         const groupData = await groupResponse.json();
-        setGroup(groupData);
-
-        // Fetch movie nights
-        const movieNightsResponse = await fetch('/api/movie-night/list-public', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ handle: resolvedHandle }),
-        });
-
-        if (!movieNightsResponse.ok) {
-          throw new Error('Failed to fetch movie nights');
-        }
-
-        const movieNightsData = await movieNightsResponse.json();
-        setMovieNights(movieNightsData.movieNights || []);
+        setGroup(groupData.group);
+        setMovieNights(groupData.movieNights || []);
 
         // Fetch roster movies
         await fetchRosterMovies();
