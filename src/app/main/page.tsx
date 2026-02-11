@@ -96,6 +96,22 @@ export default function MainPage() {
   
   // Movie details modal state
   const [selectedMovieId, setSelectedMovieId] = useState<string | null>(null);
+  
+  // Current date - only set on client side to avoid hydration mismatch
+  const [currentDate, setCurrentDate] = useState<Date | null>(null);
+  const [timezoneOffset, setTimezoneOffset] = useState<number | null>(null);
+  const [userTimezoneAbbr, setUserTimezoneAbbr] = useState<string>('Local');
+  
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setCurrentDate(new Date());
+      setTimezoneOffset(new Date().getTimezoneOffset() / -60);
+      const abbr = new Date().toLocaleTimeString('en-US', {
+        timeZoneName: 'short'
+      }).split(' ').pop() || 'Local';
+      setUserTimezoneAbbr(abbr);
+    }
+  }, []);
 
   const fetchRosterMovies = useCallback(async () => {
     if (!sessionId) return;
@@ -494,8 +510,8 @@ export default function MainPage() {
       // Get the timezone offset for the original timezone (in hours)
       const originalOffsetHours = getTimezoneOffsetHours(originalTimezone);
       
-      // Get the user's local timezone offset (in hours)
-      const localOffsetHours = new Date().getTimezoneOffset() / -60;
+      // Get the user's local timezone offset (in hours) - use state to avoid hydration mismatch
+      const localOffsetHours = timezoneOffset ?? 0;
       
       // Calculate the time difference (how many hours to add to original time)
       const timeDifference = localOffsetHours - originalOffsetHours;
@@ -514,11 +530,6 @@ export default function MainPage() {
       const period = newHour >= 12 ? 'PM' : 'AM';
       const displayHour = newHour === 0 ? 12 : newHour > 12 ? newHour - 12 : newHour;
       const displayMinute = minute.toString().padStart(2, '0');
-      
-      // Get user's timezone abbreviation
-      const userTimezoneAbbr = new Date().toLocaleTimeString('en-US', {
-        timeZoneName: 'short'
-      }).split(' ').pop() || 'Local';
       
       return `${displayHour}:${displayMinute} ${period} ${userTimezoneAbbr}`;
     } catch (error) {
@@ -560,7 +571,8 @@ export default function MainPage() {
   }
 
   // Separate past and upcoming movie nights
-  const now = new Date();
+  // Use currentDate state to avoid hydration mismatch (only set on client)
+  const now = currentDate || new Date('1970-01-01'); // Fallback to epoch if not hydrated yet
   const upcomingMovieNights = movieNights.filter(mn => new Date(mn.date) > now);
   const pastMovieNights = movieNights.filter(mn => new Date(mn.date) <= now);
 

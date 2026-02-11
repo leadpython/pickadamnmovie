@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 interface FormData {
   date: string;
@@ -41,17 +41,30 @@ export default function NewMovieNightModal({
   const [formData, setFormData] = useState<FormData>({
     date: '',
     time: '',
-    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone, // Default to user's timezone
+    timezone: 'UTC', // Default to UTC, will be updated on client side
   });
+  const [minDate, setMinDate] = useState<string>('');
+
+  // Set timezone and min date only on client side to avoid hydration mismatch
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      setFormData(prev => ({ ...prev, timezone: userTimezone }));
+      setMinDate(new Date().toISOString().split('T')[0]);
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await onSubmit(formData);
     // Reset form on successful submission
+    const userTimezone = typeof window !== 'undefined' 
+      ? Intl.DateTimeFormat().resolvedOptions().timeZone 
+      : 'UTC';
     setFormData({ 
       date: '', 
       time: '', 
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone 
+      timezone: userTimezone 
     });
   };
 
@@ -80,7 +93,7 @@ export default function NewMovieNightModal({
                   id="date"
                   value={formData.date}
                   onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
-                  min={new Date().toISOString().split('T')[0]}
+                  min={minDate}
                   required
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2"
                 />

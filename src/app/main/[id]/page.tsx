@@ -53,8 +53,21 @@ export default function MovieNightDetailsPage() {
   const [isClearing, setIsClearing] = useState(false);
   const [localMovies, setLocalMovies] = useState<Record<string, Movie> | null>(null);
   const [rosterCount, setRosterCount] = useState(0);
+  const [timezoneOffset, setTimezoneOffset] = useState<number | null>(null);
+  const [userTimezoneAbbr, setUserTimezoneAbbr] = useState<string>('Local');
 
   const movieNightId = params.id as string;
+  
+  // Set timezone info only on client side to avoid hydration mismatch
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setTimezoneOffset(new Date().getTimezoneOffset() / -60);
+      const abbr = new Date().toLocaleTimeString('en-US', {
+        timeZoneName: 'short'
+      }).split(' ').pop() || 'Local';
+      setUserTimezoneAbbr(abbr);
+    }
+  }, []);
 
   const fetchRosterCount = useCallback(async () => {
     if (!sessionId) return;
@@ -309,8 +322,8 @@ export default function MovieNightDetailsPage() {
       // Get the timezone offset for the original timezone (in hours)
       const originalOffsetHours = getTimezoneOffsetHours(originalTimezone);
       
-      // Get the user's local timezone offset (in hours)
-      const localOffsetHours = new Date().getTimezoneOffset() / -60;
+      // Get the user's local timezone offset (in hours) - use state to avoid hydration mismatch
+      const localOffsetHours = timezoneOffset ?? 0;
       
       // Calculate the time difference (how many hours to add to original time)
       const timeDifference = localOffsetHours - originalOffsetHours;
@@ -329,11 +342,6 @@ export default function MovieNightDetailsPage() {
       const period = newHour >= 12 ? 'PM' : 'AM';
       const displayHour = newHour === 0 ? 12 : newHour > 12 ? newHour - 12 : newHour;
       const displayMinute = minute.toString().padStart(2, '0');
-      
-      // Get user's timezone abbreviation
-      const userTimezoneAbbr = new Date().toLocaleTimeString('en-US', {
-        timeZoneName: 'short'
-      }).split(' ').pop() || 'Local';
       
       return `${displayHour}:${displayMinute} ${period} ${userTimezoneAbbr}`;
     } catch (error) {
